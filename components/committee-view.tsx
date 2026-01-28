@@ -342,9 +342,9 @@ function RoundDisplay({
         <ConnectorLine direction="diverge" colors={personaColors} sourceColor={USER_COLOR} />
       )}
 
-      {/* Duck responses for this round */}
+      {/* Duck responses for this round - using grid for equal height columns */}
       {round.duckMessages.length > 0 && (
-        <div className="flex justify-center gap-6 overflow-x-auto pb-4">
+        <div className="grid grid-cols-3 gap-6 pb-4" style={{ gridAutoRows: '1fr' }}>
           {personas.map((persona) => {
             const roundDuckMessages = round.duckMessages.filter(
               (m) => m.participantId === persona.id
@@ -354,7 +354,7 @@ function RoundDisplay({
             return (
               <div
                 key={persona.id}
-                className="min-w-[300px] max-w-[400px] flex-1 overflow-hidden"
+                className="min-w-0 overflow-hidden"
               >
                 {roundDuckMessages.map((message) => (
                   <MessageNode

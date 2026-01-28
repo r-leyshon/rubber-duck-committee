@@ -187,12 +187,16 @@ export function MessageNode({
 }: MessageNodeProps) {
   const isOrchestrator = message.role === 'orchestrator' || message.participantId === 'orchestrator'
   const isUser = message.role === 'user'
+  const isDuck = !isOrchestrator && !isUser
   const displayName =
     isUser
       ? 'You'
       : isOrchestrator
         ? 'Chair Duck'
         : duckName || message.participantId
+
+  // Duck responses are collapsed by default (but Suggested Solution is always visible)
+  const [isContentExpanded, setIsContentExpanded] = useState(!isDuck)
 
   // Determine colors based on participant type
   const getColors = () => {
@@ -213,7 +217,7 @@ export function MessageNode({
   const colors = getColors()
 
   return (
-    <div className="relative flex flex-col items-center">
+    <div className="relative flex flex-col items-center h-full">
       {/* Top connector line */}
       {(showConnector === 'top' || showConnector === 'both') && (
         <div
@@ -259,10 +263,11 @@ export function MessageNode({
         </div>
       )}
 
-      {/* Message card */}
+      {/* Message card - h-full to stretch to container */}
       <div
         className={cn(
-          'w-full max-w-2xl rounded-lg border-2 p-4 transition-all duration-300 overflow-hidden',
+          'w-full max-w-2xl rounded-lg border-2 p-4 transition-all duration-300 overflow-hidden flex flex-col',
+          isDuck && 'h-full',
           message.status === 'thinking' && 'ring-1 ring-node-line-active animate-pulse'
         )}
         style={{
@@ -314,16 +319,37 @@ export function MessageNode({
           <ChainOfThoughtPanel thoughts={message.chainOfThought} />
         )}
 
-        {/* Content */}
-        <div className="text-sm text-foreground/90 prose prose-sm prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:text-foreground prose-strong:text-foreground break-words overflow-hidden">
-          {message.content ? (
-            <ReactMarkdown>{message.content}</ReactMarkdown>
-          ) : (
-            <span className="text-muted-foreground italic">Thinking...</span>
-          )}
-        </div>
+        {/* Content - collapsible for duck messages */}
+        {isDuck && message.content ? (
+          <Collapsible open={isContentExpanded} onOpenChange={setIsContentExpanded}>
+            <CollapsibleTrigger className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors mb-2">
+              <ChevronDown
+                className={cn(
+                  'h-3 w-3 transition-transform',
+                  isContentExpanded && 'rotate-180'
+                )}
+              />
+              <span className="font-mono">
+                {isContentExpanded ? 'Hide Analysis' : 'Show Analysis'}
+              </span>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="text-sm text-foreground/90 prose prose-sm prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:text-foreground prose-strong:text-foreground break-words overflow-hidden">
+                <ReactMarkdown>{message.content}</ReactMarkdown>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        ) : (
+          <div className="text-sm text-foreground/90 prose prose-sm prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:text-foreground prose-strong:text-foreground break-words overflow-hidden">
+            {message.content ? (
+              <ReactMarkdown>{message.content}</ReactMarkdown>
+            ) : (
+              <span className="text-muted-foreground italic">Thinking...</span>
+            )}
+          </div>
+        )}
 
-        {/* Suggested solution highlight */}
+        {/* Suggested solution highlight - ALWAYS visible */}
         {message.suggestedSolution && (
           <div className="mt-3 p-3 rounded-md bg-status-complete/10 border border-status-complete/30">
             <div className="text-xs font-medium text-status-complete mb-1">

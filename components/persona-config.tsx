@@ -202,6 +202,18 @@ export function PersonaConfig({ persona, onUpdate }: PersonaConfigProps) {
         </div>
 
         <CollapsibleContent className="mt-4 space-y-4">
+          {/* Save/Reset buttons at top for easy access */}
+          {hasChanges && (
+            <div className="flex gap-2 pb-2 border-b border-border/50">
+              <Button size="sm" onClick={saveChanges} className="flex-1">
+                Save Changes
+              </Button>
+              <Button size="sm" variant="ghost" onClick={resetChanges}>
+                Reset
+              </Button>
+            </div>
+          )}
+
           {/* Name */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
@@ -324,17 +336,6 @@ export function PersonaConfig({ persona, onUpdate }: PersonaConfigProps) {
             />
           </div>
 
-          {/* Save/Reset buttons */}
-          {hasChanges && (
-            <div className="flex gap-2 pt-2 border-t border-border/50">
-              <Button size="sm" onClick={saveChanges} className="flex-1">
-                Save Changes
-              </Button>
-              <Button size="sm" variant="ghost" onClick={resetChanges}>
-                Reset
-              </Button>
-            </div>
-          )}
         </CollapsibleContent>
 
         {/* Persona preview - always visible when collapsed */}
