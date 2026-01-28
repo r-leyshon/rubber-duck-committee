@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { PersonaPanel } from '@/components/persona-config'
 import { CommitteeView } from '@/components/committee-view'
 import { InputPanel } from '@/components/input-panel'
@@ -9,7 +10,6 @@ import { useCommittee } from '@/hooks/use-committee'
 import { DEFAULT_PERSONAS } from '@/lib/types'
 import type { DuckPersona } from '@/lib/types'
 import { Users, ChevronRight } from 'lucide-react'
-import { DuckIcon } from '@/components/duck-icon'
 import { cn } from '@/lib/utils'
 
 export default function RubberDuckCommittee() {
@@ -46,8 +46,14 @@ export default function RubberDuckCommittee() {
             )} />
           </Button>
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-orchestrator flex items-center justify-center">
-              <DuckIcon className="h-5 w-5 text-background" />
+            <div className="h-8 w-8 rounded-full bg-orchestrator flex items-center justify-center overflow-hidden">
+              <Image
+                src="/icons/chair-duck-icon-64.png"
+                alt="Chair Duck"
+                width={32}
+                height={32}
+                className="object-cover"
+              />
             </div>
             <div>
               <h1 className="font-semibold text-foreground text-sm">
@@ -158,7 +164,7 @@ function DuckAvatar({ color, delay }: { color: string; delay: number }) {
   return (
     <div
       className={cn(
-        'h-16 w-16 rounded-full flex items-center justify-center animate-bounce',
+        'h-16 w-16 rounded-full flex items-center justify-center animate-bounce overflow-hidden',
         `bg-${color}`
       )}
       style={{
@@ -166,7 +172,13 @@ function DuckAvatar({ color, delay }: { color: string; delay: number }) {
         animationDuration: '2s',
       }}
     >
-      <DuckIcon className="h-8 w-8 text-background" />
+      <Image
+        src="/icons/duck-icon-64.png"
+        alt="Duck"
+        width={48}
+        height={48}
+        className="object-cover"
+      />
     </div>
   )
 }

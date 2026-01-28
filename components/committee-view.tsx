@@ -205,13 +205,13 @@ export function CommitteeView({
             </div>
           )}
 
-          {/* Orchestrator messages */}
+          {/* Chair Duck messages */}
           {orchestratorMessages.map((message) => (
             <div key={message.id} className="flex justify-center">
               <div className="max-w-2xl w-full">
                 <MessageNode
                   message={message}
-                  duckName="Orchestrator"
+                  duckName="Chair Duck"
                   showConnector="top"
                 />
               </div>

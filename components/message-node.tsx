@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import { ChevronDown, Loader2, CheckCircle2, HelpCircle } from 'lucide-react'
 import {
@@ -82,11 +83,12 @@ export function MessageNode({
   isConverging = false,
 }: MessageNodeProps) {
   const participantKey = message.participantId as string
+  const isOrchestrator = message.role === 'orchestrator' || message.participantId === 'orchestrator'
   const displayName =
     message.role === 'user'
       ? 'You'
-      : message.role === 'orchestrator'
-        ? 'Orchestrator'
+      : isOrchestrator
+        ? 'Chair Duck'
         : duckName || message.participantId
 
   return (
@@ -149,11 +151,29 @@ export function MessageNode({
           <div className="flex items-center gap-2">
             <div
               className={cn(
-                'h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold text-background',
+                'h-6 w-6 rounded-full flex items-center justify-center overflow-hidden',
                 PARTICIPANT_ACCENT[participantKey]
               )}
             >
-              {displayName.charAt(0)}
+              {message.role === 'user' ? (
+                <span className="text-xs font-bold text-background">Y</span>
+              ) : isOrchestrator ? (
+                <Image
+                  src="/icons/chair-duck-icon-32.png"
+                  alt="Chair Duck"
+                  width={24}
+                  height={24}
+                  className="object-cover"
+                />
+              ) : (
+                <Image
+                  src="/icons/duck-icon-32.png"
+                  alt="Duck"
+                  width={24}
+                  height={24}
+                  className="object-cover"
+                />
+              )}
             </div>
             <span className="font-medium text-sm text-foreground">
               {displayName}
@@ -225,11 +245,17 @@ export function DuckStream({ duckId, duckName, messages, isActive }: DuckStreamP
         <div className="flex items-center gap-2">
           <div
             className={cn(
-              'h-5 w-5 rounded-full flex items-center justify-center text-xs font-bold text-background',
+              'h-5 w-5 rounded-full flex items-center justify-center overflow-hidden',
               PARTICIPANT_ACCENT[duckId]
             )}
           >
-            {duckName.charAt(0)}
+            <Image
+              src="/icons/duck-icon-32.png"
+              alt={duckName}
+              width={20}
+              height={20}
+              className="object-cover"
+            />
           </div>
           <span>{duckName}</span>
           {isActive && (
