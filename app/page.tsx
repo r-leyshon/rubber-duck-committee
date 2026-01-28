@@ -39,10 +39,10 @@ export default function RubberDuckCommittee() {
             className="gap-1.5"
           >
             <Image
-              src="/icons/duck-icon-32.png"
-              alt="Ducks"
-              width={18}
-              height={18}
+              src="/icons/multi-duck-icon-32.png"
+              alt="Duck Personas"
+              width={20}
+              height={20}
               className="brightness-0 invert"
             />
             <span className="hidden sm:inline">Personas</span>
@@ -52,13 +52,13 @@ export default function RubberDuckCommittee() {
             )} />
           </Button>
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-orchestrator flex items-center justify-center overflow-hidden">
+            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-duck-analytical via-duck-creative to-duck-pragmatic flex items-center justify-center overflow-hidden p-1">
               <Image
-                src="/icons/chair-duck-icon-64.png"
-                alt="Chair Duck"
-                width={32}
-                height={32}
-                className="object-cover"
+                src="/icons/multi-duck-icon-64.png"
+                alt="Duck Committee"
+                width={28}
+                height={28}
+                className="object-contain"
               />
             </div>
             <div>
