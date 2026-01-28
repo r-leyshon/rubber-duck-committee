@@ -201,6 +201,7 @@ export interface CommitteeMessage {
   suggestedSolution?: string
   questionsWithOptions?: QuestionWithOptions[]
   vote?: DuckPersonaId
+  votingResult?: VotingResult  // Attached to event messages when voting completes
 }
 
 export interface DuckResponse {

@@ -6,7 +6,52 @@ import { MessageNode } from './message-node'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { RotateCcw, Trophy, Vote } from 'lucide-react'
-import type { DuckPersona, CommitteeMessage, DuckPersonaId, VotingResult } from '@/lib/types'
+import type { DuckPersona, CommitteeMessage, DuckPersonaId, VotingResult, Vote as VoteType } from '@/lib/types'
+
+// Reusable PersonaBadge component for consistent styling
+function PersonaBadge({
+  persona,
+  variant = 'filled',
+}: {
+  persona: DuckPersona | undefined
+  variant?: 'filled' | 'outline'
+}) {
+  if (!persona) return null
+  
+  const colorVar = `var(--${persona.color})`
+  
+  // Common base styles for all badges
+  const baseClasses = 'inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0'
+  
+  if (variant === 'outline') {
+    return (
+      <span
+        className={baseClasses}
+        style={{
+          border: `2px solid ${colorVar}`,
+          color: colorVar,
+          backgroundColor: 'transparent',
+        }}
+      >
+        {persona.name}
+      </span>
+    )
+  }
+  
+  // Filled variant
+  return (
+    <span
+      className={baseClasses}
+      style={{
+        backgroundColor: colorVar,
+        border: `2px solid ${colorVar}`,
+        color: 'var(--background)',
+      }}
+    >
+      {persona.name}
+    </span>
+  )
+}
 
 interface CommitteeViewProps {
   personas: DuckPersona[]
@@ -18,6 +63,16 @@ interface CommitteeViewProps {
   onInitiateVoting?: () => void  // Optional - voting now auto-triggers
   onReset: () => void
   onAnswerSubmit?: (answers: string) => void  // For quick answer submission
+}
+
+// Voting block that occurred within a round
+interface VotingBlock {
+  eventMessage: CommitteeMessage
+  resultMessage: CommitteeMessage | null
+  votes: VoteType[]
+  winner: string | null
+  wasTiebreaker?: boolean
+  tiebreakerReasoning?: string
 }
 
 const PHASE_LABELS = {
@@ -34,11 +89,12 @@ const PHASE_COLORS = {
   concluded: 'bg-status-complete/20 text-status-complete border-status-complete/50',
 }
 
-// A conversation round groups: user message -> duck responses -> orchestrator summary
+// A conversation round groups: user message -> duck responses -> orchestrator summary -> optional voting
 interface ConversationRound {
   userMessage: CommitteeMessage
   duckMessages: CommitteeMessage[]
   orchestratorMessage: CommitteeMessage | null
+  votingBlock: VotingBlock | null  // Voting that occurred in this round
 }
 
 // Connector line component for visual flow
@@ -87,6 +143,147 @@ function EventNode({ content, icon }: { content: string; icon?: React.ReactNode 
   )
 }
 
+// Round display component to render a single conversation round
+function RoundDisplay({
+  round,
+  personas,
+  onAnswerSubmit,
+  showNextConnector,
+}: {
+  round: ConversationRound
+  personas: DuckPersona[]
+  onAnswerSubmit?: (answers: string) => void
+  showNextConnector: boolean
+}) {
+  return (
+    <div className="space-y-6">
+      {/* User message */}
+      <div className="flex justify-center">
+        <div className="max-w-2xl w-full">
+          <MessageNode message={round.userMessage} />
+        </div>
+      </div>
+
+      {/* Connector to duck responses */}
+      {round.duckMessages.length > 0 && <ConnectorLine direction="diverge" />}
+
+      {/* Duck responses for this round */}
+      {round.duckMessages.length > 0 && (
+        <div className="flex justify-center gap-6 overflow-x-auto pb-4">
+          {personas.map((persona) => {
+            const roundDuckMessages = round.duckMessages.filter(
+              (m) => m.participantId === persona.id
+            )
+            if (roundDuckMessages.length === 0) return null
+
+            return (
+              <div
+                key={persona.id}
+                className="min-w-[300px] max-w-[400px] flex-1 overflow-hidden"
+              >
+                {roundDuckMessages.map((message) => (
+                  <MessageNode
+                    key={message.id}
+                    message={message}
+                    duckName={persona.name}
+                  />
+                ))}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Connector to orchestrator */}
+      {round.orchestratorMessage && round.duckMessages.length > 0 && (
+        <ConnectorLine direction="converge" />
+      )}
+
+      {/* Orchestrator message for this round */}
+      {round.orchestratorMessage && (
+        <div className="flex justify-center">
+          <div className="max-w-2xl w-full">
+            <MessageNode
+              message={round.orchestratorMessage}
+              duckName="Chair Duck"
+              onAnswerSubmit={onAnswerSubmit}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Voting block if this round triggered voting */}
+      {round.votingBlock && (
+        <>
+          <ConnectorLine direction="down" />
+          <EventNode content={round.votingBlock.eventMessage.content} />
+          
+          {/* Voting results */}
+          {round.votingBlock.votes.length > 0 && (
+            <>
+              <ConnectorLine direction="down" />
+              <div className="flex justify-center">
+                <div className="max-w-2xl w-full p-6 rounded-lg border border-orchestrator/50 bg-orchestrator/5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Trophy className="h-5 w-5 text-orchestrator" />
+                    <h3 className="font-semibold text-foreground">
+                      Voting Results
+                    </h3>
+                  </div>
+                  <div className="space-y-3">
+                    {round.votingBlock.votes.map((vote, idx) => {
+                      const voter = personas.find((p) => p.id === vote.voterId)
+                      const votedFor = personas.find((p) => p.id === vote.votedFor)
+                      return (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-3 text-sm"
+                        >
+                          <PersonaBadge persona={voter} variant="outline" />
+                          <span className="text-muted-foreground">voted for</span>
+                          <PersonaBadge persona={votedFor} variant="filled" />
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {round.votingBlock.wasTiebreaker && (
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <p className="text-sm text-muted-foreground">
+                        <strong>Tiebreaker:</strong>{' '}
+                        {round.votingBlock.tiebreakerReasoning}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Chair Duck's final message with the winning solution */}
+          {round.votingBlock.resultMessage && (
+            <>
+              <ConnectorLine direction="down" />
+              <div className="flex justify-center">
+                <div className="max-w-2xl w-full">
+                  <MessageNode
+                    message={round.votingBlock.resultMessage}
+                    duckName="Chair Duck"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {/* Connector to next round if there is one */}
+      {showNextConnector && (round.orchestratorMessage || round.votingBlock) && (
+        <ConnectorLine direction="down" />
+      )}
+    </div>
+  )
+}
+
 export function CommitteeView({
   personas,
   messages,
@@ -105,7 +302,7 @@ export function CommitteeView({
     }
   }, [messages])
 
-  // Group messages into conversation rounds using array indices (not timestamps)
+  // Group messages into conversation rounds, including voting blocks within each round
   const rounds = useMemo(() => {
     const result: ConversationRound[] = []
     
@@ -114,6 +311,15 @@ export function CommitteeView({
     messages.forEach((m, idx) => {
       if (m.role === 'user') userMsgIndices.push(idx)
     })
+    
+    // Find all event messages (voting initiated)
+    const eventMessages = messages.filter((m) => m.role === 'event')
+    const eventMsgIds = new Set(eventMessages.map((m) => m.id))
+    
+    // Find all system messages (voting results)
+    const systemMessages = messages.filter(
+      (m) => m.role === 'system' && m.participantId === 'orchestrator'
+    )
     
     userMsgIndices.forEach((userMsgIdx, roundNum) => {
       const userMsg = messages[userMsgIdx]
@@ -134,25 +340,51 @@ export function CommitteeView({
         (m) => m.participantId === 'orchestrator' && m.role === 'orchestrator'
       )
       
+      // Find voting event in this round
+      const votingEventMsg = roundMessages.find((m) => eventMsgIds.has(m.id))
+      
+      // Find voting result in this round (system message after the event)
+      const votingResultMsg = votingEventMsg
+        ? roundMessages.find(
+            (m) => m.role === 'system' && m.participantId === 'orchestrator'
+          )
+        : null
+      
+      // Build voting block if present
+      let votingBlock: VotingBlock | null = null
+      if (votingEventMsg) {
+        // Get voting result from the event message itself (stored when voting completes)
+        // This ensures historical voting rounds retain their results
+        const storedResult = votingEventMsg.votingResult
+        
+        // Fall back to the current votingResult prop if this is the most recent/in-progress voting
+        const effectiveResult = storedResult || (
+          systemMessages.length > 0 && 
+          votingResultMsg?.id === systemMessages[systemMessages.length - 1]?.id
+            ? votingResult
+            : null
+        )
+        
+        votingBlock = {
+          eventMessage: votingEventMsg,
+          resultMessage: votingResultMsg || null,
+          votes: effectiveResult?.votes || [],
+          winner: effectiveResult?.winner || null,
+          wasTiebreaker: effectiveResult?.wasTiebreaker || false,
+          tiebreakerReasoning: effectiveResult?.tiebreakerReasoning,
+        }
+      }
+      
       result.push({
         userMessage: userMsg,
         duckMessages: duckMsgs,
         orchestratorMessage: orchestratorMsg || null,
+        votingBlock,
       })
     })
     
     return result
-  }, [messages])
-
-  // Find the voting event message
-  const votingEventMessage = useMemo(() => {
-    return messages.find((m) => m.role === 'event')
-  }, [messages])
-
-  // Find the final Chair Duck message (with voting results) - it's a 'system' role message
-  const votingResultMessage = useMemo(() => {
-    return messages.find((m) => m.role === 'system' && m.participantId === 'orchestrator')
-  }, [messages])
+  }, [messages, votingResult])
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -190,158 +422,16 @@ export function CommitteeView({
       {/* Main content area - chronological conversation flow */}
       <div ref={scrollRef} className="flex-1 overflow-auto p-6">
         <div className="max-w-7xl mx-auto space-y-6">
-          {/* Render each conversation round in order */}
+          {/* Render all rounds chronologically - voting blocks are embedded within each round */}
           {rounds.map((round, roundIdx) => (
-            <div key={round.userMessage.id} className="space-y-6">
-              {/* User message */}
-              <div className="flex justify-center">
-                <div className="max-w-2xl w-full">
-                  <MessageNode 
-                    message={round.userMessage} 
-                  />
-                </div>
-              </div>
-
-              {/* Connector to duck responses */}
-              {round.duckMessages.length > 0 && <ConnectorLine direction="diverge" />}
-
-              {/* Duck responses for this round */}
-              {round.duckMessages.length > 0 && (
-                <div className="flex justify-center gap-6 overflow-x-auto pb-4">
-                  {personas.map((persona) => {
-                    // Get only this round's messages for this duck
-                    const roundDuckMessages = round.duckMessages.filter(
-                      (m) => m.participantId === persona.id
-                    )
-                    if (roundDuckMessages.length === 0) return null
-                    
-                    return (
-                      <div
-                        key={persona.id}
-                        className="min-w-[300px] max-w-[400px] flex-1 overflow-hidden"
-                      >
-                        {roundDuckMessages.map((message) => (
-                          <MessageNode
-                            key={message.id}
-                            message={message}
-                            duckName={persona.name}
-                          />
-                        ))}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-
-              {/* Connector to orchestrator */}
-              {round.orchestratorMessage && round.duckMessages.length > 0 && (
-                <ConnectorLine direction="converge" />
-              )}
-
-              {/* Orchestrator message for this round */}
-              {round.orchestratorMessage && (
-                <div className="flex justify-center">
-                  <div className="max-w-2xl w-full">
-                    <MessageNode
-                      message={round.orchestratorMessage}
-                      duckName="Chair Duck"
-                      onAnswerSubmit={onAnswerSubmit}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Connector to next round if there is one */}
-              {roundIdx < rounds.length - 1 && round.orchestratorMessage && (
-                <ConnectorLine direction="down" />
-              )}
-            </div>
+            <RoundDisplay
+              key={round.userMessage.id}
+              round={round}
+              personas={personas}
+              onAnswerSubmit={onAnswerSubmit}
+              showNextConnector={roundIdx < rounds.length - 1}
+            />
           ))}
-
-          {/* Voting event - shown when voting is initiated */}
-          {votingEventMessage && (
-            <>
-              <ConnectorLine direction="down" />
-              <EventNode content={votingEventMessage.content} />
-            </>
-          )}
-
-          {/* Voting results card */}
-          {votingResult && (
-            <>
-              <ConnectorLine direction="down" />
-              <div className="flex justify-center">
-                <div className="max-w-2xl w-full p-6 rounded-lg border border-orchestrator/50 bg-orchestrator/5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Trophy className="h-5 w-5 text-orchestrator" />
-                    <h3 className="font-semibold text-foreground">
-                      Voting Results
-                    </h3>
-                  </div>
-                  <div className="space-y-3">
-                    {votingResult.votes.map((vote, idx) => {
-                      const voter = personas.find((p) => p.id === vote.voterId)
-                      const votedFor = personas.find((p) => p.id === vote.votedFor)
-                      return (
-                        <div
-                          key={idx}
-                          className="flex items-start gap-3 text-sm"
-                        >
-                          <Badge 
-                            variant="outline" 
-                            className="shrink-0"
-                            style={{ 
-                              borderColor: `var(--${voter?.color})`,
-                              color: `var(--${voter?.color})`,
-                            }}
-                          >
-                            {voter?.name}
-                          </Badge>
-                          <span className="text-muted-foreground">voted for</span>
-                          <Badge
-                            className={cn(
-                              'shrink-0 border',
-                              vote.votedFor === votingResult.winner && 'ring-2 ring-orchestrator'
-                            )}
-                            style={{ 
-                              backgroundColor: `var(--${votedFor?.color})`,
-                              borderColor: `var(--${votedFor?.color})`,
-                              color: 'var(--background)',
-                            }}
-                          >
-                            {votedFor?.name}
-                          </Badge>
-                        </div>
-                      )
-                    })}
-                  </div>
-                  {votingResult.wasTiebreaker && (
-                    <div className="mt-4 pt-4 border-t border-border">
-                      <p className="text-sm text-muted-foreground">
-                        <strong>Tiebreaker:</strong>{' '}
-                        {votingResult.tiebreakerReasoning}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Chair Duck's final message with the winning solution */}
-          {votingResultMessage && (
-            <>
-              <ConnectorLine direction="down" />
-              <div className="flex justify-center">
-                <div className="max-w-2xl w-full">
-                  <MessageNode
-                    message={votingResultMessage}
-                    duckName="Chair Duck"
-                  />
-                </div>
-              </div>
-            </>
-          )}
         </div>
       </div>
     </div>

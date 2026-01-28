@@ -121,7 +121,9 @@ export default function RubberDuckCommittee() {
               ? 'Describe your problem to the duck committee...'
               : currentPhase === 'proposing'
                 ? 'Add more context or details...'
-                : 'Start a new session with a new problem...'
+                : currentPhase === 'concluded'
+                  ? 'Ask follow-up questions about the solution or voting...'
+                  : 'Add more context or details...'
           }
         />
       </main>

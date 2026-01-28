@@ -3,25 +3,39 @@ import { z } from 'zod'
 import type { DuckPersona } from '@/lib/types'
 import { vertex, DEFAULT_MODEL } from '@/lib/vertex'
 
-// Simplified schema with descriptions to guide the model
-const duckResponseSchema = z.object({
-  status: z.enum(['complete', 'needs-context']).describe(
-    'Set to "needs-context" if you need more information from the user to help them. Set to "complete" if you can provide a full analysis or solution.'
-  ),
-  thinking: z.array(z.object({
-    step: z.number().describe('Step number starting from 1'),
-    thought: z.string().describe('What you are considering at this step'),
-  })).describe('Your chain of thought reasoning process, 2-4 steps'),
-  analysis: z.string().describe(
-    'Your main response to the user. Use markdown formatting. Be concise but thorough (2-4 paragraphs).'
-  ),
-  followUpQuestions: z.array(z.string()).optional().describe(
-    'Questions to ask the user if you need more context. Only include if status is "needs-context".'
-  ),
-  suggestedSolution: z.string().optional().describe(
-    'A clear suggested solution or approach. Only include if status is "complete" and you have a concrete recommendation.'
-  ),
-})
+// Common fields shared between both status types
+const thinkingSchema = z.array(z.object({
+  step: z.number().describe('Step number starting from 1'),
+  thought: z.string().describe('What you are considering at this step'),
+})).describe('Your chain of thought reasoning process, 2-4 steps')
+
+const analysisSchema = z.string().describe(
+  'Your main response to the user. Use markdown formatting. Be concise but thorough (2-4 paragraphs).'
+)
+
+// Discriminated union: status determines which fields are required
+const duckResponseSchema = z.discriminatedUnion('status', [
+  // When complete: suggestedSolution is REQUIRED
+  z.object({
+    status: z.literal('complete').describe('Set to "complete" when you can provide a full analysis and solution.'),
+    thinking: thinkingSchema,
+    analysis: analysisSchema,
+    suggestedSolution: z.string().describe(
+      'REQUIRED when status is "complete". A clear, actionable solution summarized in 2-5 bullet points or a short paragraph.'
+    ),
+    followUpQuestions: z.array(z.string()).optional(),
+  }),
+  // When needs-context: followUpQuestions is REQUIRED, suggestedSolution is optional
+  z.object({
+    status: z.literal('needs-context').describe('Set to "needs-context" when you need more information from the user.'),
+    thinking: thinkingSchema,
+    analysis: analysisSchema,
+    followUpQuestions: z.array(z.string()).describe(
+      'REQUIRED when status is "needs-context". Questions to ask the user for more details.'
+    ),
+    suggestedSolution: z.string().optional(),
+  }),
+])
 
 export type DuckResponseType = z.infer<typeof duckResponseSchema>
 
@@ -78,22 +92,18 @@ ${orchestratorContext ? `Context from the orchestrator: ${orchestratorContext}` 
 3. **Be concise** - Keep your analysis to 2-4 paragraphs
 4. **Use markdown** - Format with **bold**, \`code\`, and bullet points
 
-## CRITICAL: Status Selection
+## CRITICAL: Status determines required fields
 
-You MUST set status correctly:
+**If status = "complete":**
+- You MUST provide suggestedSolution (2-5 bullet points or short paragraph)
+- followUpQuestions is optional
 
-- **Set status to "needs-context"** when:
-  - The problem description is vague or missing key details
-  - You need to ask clarifying questions before giving advice
-  - You don't have enough information to provide a concrete solution
-  - You're asking follow-up questions in your analysis
+**If status = "needs-context":**
+- You MUST provide followUpQuestions (list of clarifying questions)
+- suggestedSolution is optional
 
-- **Set status to "complete"** when:
-  - You have enough information to provide a full analysis
-  - You can give a concrete, actionable solution
-  - No follow-up questions are needed
-
-If you include follow-up questions in your response, you MUST set status to "needs-context".`
+Choose "needs-context" when the problem is vague or missing key details.
+Choose "complete" when you can provide a concrete, actionable solution.`
 
   // conversationHistory already includes the current user message
   const messages = conversationHistory

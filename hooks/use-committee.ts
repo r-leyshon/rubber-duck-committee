@@ -75,7 +75,18 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
 
   const submitToCommittee = useCallback(
     async (userMessage: string) => {
-      setState((prev) => ({ ...prev, isProcessing: true }))
+      // If voting already completed, reset the voting state for a new round
+      const isNewRoundAfterVoting = state.votingResult !== null
+      
+      setState((prev) => ({ 
+        ...prev, 
+        isProcessing: true,
+        // Reset voting state if starting a new round after previous voting concluded
+        ...(isNewRoundAfterVoting && {
+          votingResult: null,
+          currentPhase: 'exploring',
+        }),
+      }))
 
       // Add user message
       addMessage('user', 'user', userMessage)
@@ -260,7 +271,7 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
               status: r.status,
               followUpQuestions: r.followUpQuestions,
               suggestedSolution: r.suggestedSolution,
-            })),
+            }))
           }),
         })
 
@@ -365,8 +376,9 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
   async function initiateVotingInternal(duckResults: DuckResponse[]) {
     setState((prev) => ({ ...prev, currentPhase: 'voting', isProcessing: true }))
 
-    // Add "Voting initiated" event message
-    addMessage('event', 'orchestrator', 'Voting initiated', { status: 'complete' })
+    // Add "Voting initiated" event message and capture its ID
+    const eventMessage = addMessage('event', 'orchestrator', 'Voting initiated', { status: 'complete' })
+    const eventMessageId = eventMessage.id
 
     const solutions = duckResults
       .filter((r) => r.suggestedSolution)
@@ -391,10 +403,18 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
 
       if (voteResponse.ok) {
         const result: VotingResult = await voteResponse.json()
+        
+        // Update the event message with the voting result
         setState((prev) => ({
           ...prev,
           votingResult: result,
           currentPhase: 'concluded',
+          // Attach voting result to the event message for historical access
+          messages: prev.messages.map((m) =>
+            m.id === eventMessageId
+              ? { ...m, votingResult: result }
+              : m
+          ),
         }))
 
         // Add voting result message with the winning solution in the suggestedSolution box
