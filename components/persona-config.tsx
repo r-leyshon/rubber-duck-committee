@@ -11,7 +11,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { ChevronDown, Search, Pencil, Palette } from 'lucide-react'
+import { ChevronDown, Search, Pencil, Palette, Sparkles, Loader2 } from 'lucide-react'
 import type { DuckPersona, DuckMode } from '@/lib/types'
 import { DUCK_MODES } from '@/lib/types'
 
@@ -90,6 +90,7 @@ export function PersonaConfig({ persona, onUpdate }: PersonaConfigProps) {
   const [editedDescription, setEditedDescription] = useState(persona.description)
   const [editedPrompt, setEditedPrompt] = useState(persona.systemPrompt)
   const [editedColor, setEditedColor] = useState(persona.color)
+  const [isGeneratingName, setIsGeneratingName] = useState(false)
 
   const hasChanges = 
     editedName !== persona.name ||
@@ -123,6 +124,33 @@ export function PersonaConfig({ persona, onUpdate }: PersonaConfigProps) {
     setEditedDescription(persona.description)
     setEditedPrompt(persona.systemPrompt)
     setEditedColor(persona.color)
+  }
+
+  const generateName = async () => {
+    if (isGeneratingName) return
+    
+    setIsGeneratingName(true)
+    try {
+      const response = await fetch('/api/generate-name', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: editedDescription,
+          systemPrompt: editedPrompt,
+        }),
+      })
+      
+      if (response.ok) {
+        const { name } = await response.json()
+        if (name) {
+          setEditedName(name)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to generate name:', error)
+    } finally {
+      setIsGeneratingName(false)
+    }
   }
 
   return (
@@ -179,13 +207,30 @@ export function PersonaConfig({ persona, onUpdate }: PersonaConfigProps) {
             <label className="text-sm font-medium text-foreground">
               Name
             </label>
-            <input
-              type="text"
-              value={editedName}
-              onChange={(e) => setEditedName(e.target.value)}
-              className="w-full px-3 py-2 text-sm rounded-md border border-border bg-background/50 focus:outline-none focus:ring-2 focus:ring-ring"
-              placeholder="Duck name..."
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={editedName}
+                onChange={(e) => setEditedName(e.target.value)}
+                className="flex-1 px-3 py-2 text-sm rounded-md border border-border bg-background/50 focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder="Duck name..."
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={generateName}
+                disabled={isGeneratingName}
+                className="shrink-0 h-9 w-9"
+                title="Generate a duck-themed name based on description and prompt"
+              >
+                {isGeneratingName ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
 
           {/* Description */}
