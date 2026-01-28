@@ -186,7 +186,7 @@ export function PersonaConfig({ persona, onUpdate }: PersonaConfigProps) {
               size="sm" 
               className={cn(
                 "gap-1.5 shrink-0",
-                !isOpen && "hover:bg-secondary"
+                !isOpen && "hover:bg-secondary hover:text-secondary-foreground"
               )}
             >
               <Pencil className="h-3.5 w-3.5" />

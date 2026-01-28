@@ -30,7 +30,7 @@ export default function RubberDuckCommittee() {
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 h-14 border-b border-border bg-card/50 backdrop-blur-sm">
+      <header className="flex items-center justify-between px-4 h-14 border-b border-border bg-card/50 backdrop-blur-sm relative z-30">
         <div className="flex items-center gap-3">
           <Button
             variant={isPanelOpen ? "secondary" : "outline"}
@@ -92,7 +92,7 @@ export default function RubberDuckCommittee() {
       {/* Main content */}
       <main
         className={cn(
-          'flex-1 flex flex-col overflow-hidden transition-all duration-300',
+          'flex-1 flex flex-col overflow-hidden transition-all duration-300 relative z-0',
           isPanelOpen && 'ml-80'
         )}
       >
