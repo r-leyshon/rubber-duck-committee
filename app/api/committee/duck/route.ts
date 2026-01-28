@@ -1,22 +1,7 @@
-import { streamText, tool, Output } from 'ai'
+import { streamText, tool } from 'ai'
 import { z } from 'zod'
 import type { DuckPersona } from '@/lib/types'
 import { vertex, DEFAULT_MODEL } from '@/lib/vertex'
-
-// Schema for duck response with chain of thought
-const duckResponseSchema = z.object({
-  chainOfThought: z.array(
-    z.object({
-      step: z.number(),
-      thought: z.string(),
-      reasoning: z.string(),
-    })
-  ),
-  status: z.enum(['thinking', 'complete', 'needs-context']),
-  followUpQuestions: z.array(z.string()).nullable(),
-  analysis: z.string(),
-  suggestedSolution: z.string().nullable(),
-})
 
 export async function POST(req: Request) {
   const { 
@@ -86,14 +71,17 @@ Your job is to help the user debug their problem through your unique perspective
 
 ${orchestratorContext ? `Context from the orchestrator: ${orchestratorContext}` : ''}
 
-You MUST structure your response with clear chain-of-thought reasoning. Think step by step and show your work.
+## Response Guidelines
 
-Format your thinking as:
-1. First, state what you understand about the problem
-2. Then, explain your reasoning process
-3. Either ask follow-up questions if you need more context, OR provide your analysis and suggested solution
+1. **Stay in character** - Respond according to your persona's personality and approach
+2. **Be concise but thorough** - Aim for 2-4 paragraphs maximum
+3. **Use markdown formatting** - Use **bold**, \`code\`, and bullet points for clarity
+4. **Show your thinking** - Briefly explain your reasoning process
+5. **End with either:**
+   - Follow-up questions if you need more context, OR
+   - A clear suggested approach/solution
 
-Always be helpful, thorough, and true to your persona's character.`
+Remember: Be helpful, be yourself, and help the user see their problem from a new angle.`
 
   // Build messages array
   const messages = [
@@ -106,9 +94,6 @@ Always be helpful, thorough, and true to your persona's character.`
     system: systemPrompt,
     messages,
     tools,
-    output: Output.object({
-      schema: duckResponseSchema,
-    }),
   })
 
   return result.toUIMessageStreamResponse()

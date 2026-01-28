@@ -8,6 +8,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
+import ReactMarkdown from 'react-markdown'
 import type { CommitteeMessage, ChainOfThought, DuckPersonaId } from '@/lib/types'
 
 interface MessageNodeProps {
@@ -167,8 +168,10 @@ export function MessageNode({
         </div>
 
         {/* Content */}
-        <div className="text-sm text-foreground/90 whitespace-pre-wrap">
-          {message.content || (
+        <div className="text-sm text-foreground/90 prose prose-sm prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:text-foreground prose-strong:text-foreground">
+          {message.content ? (
+            <ReactMarkdown>{message.content}</ReactMarkdown>
+          ) : (
             <span className="text-muted-foreground italic">Thinking...</span>
           )}
         </div>
@@ -179,8 +182,8 @@ export function MessageNode({
             <div className="text-xs font-medium text-status-complete mb-1">
               Suggested Solution
             </div>
-            <div className="text-sm text-foreground">
-              {message.suggestedSolution}
+            <div className="text-sm text-foreground prose prose-sm prose-invert max-w-none">
+              <ReactMarkdown>{message.suggestedSolution}</ReactMarkdown>
             </div>
           </div>
         )}

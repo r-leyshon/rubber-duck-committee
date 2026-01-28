@@ -116,10 +116,6 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
           const decoder = new TextDecoder()
           let buffer = ''
           let fullContent = ''
-          let chainOfThought: DuckResponse['chainOfThought'] = []
-          let followUpQuestions: string[] | undefined
-          let suggestedSolution: string | undefined
-          let status: DuckResponse['status'] = 'thinking'
 
           while (true) {
             const { done, value } = await reader.read()
@@ -136,17 +132,18 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
                 if (data === '[DONE]') continue
                 try {
                   const chunk = JSON.parse(data)
+                  // Handle text streaming
                   if (chunk.type === 'text-delta' && chunk.delta) {
                     fullContent += chunk.delta
-                  }
-                  // Handle structured output
-                  if (chunk.type === 'output' && chunk.output) {
-                    const output = chunk.output
-                    if (output.chainOfThought) chainOfThought = output.chainOfThought
-                    if (output.followUpQuestions) followUpQuestions = output.followUpQuestions
-                    if (output.suggestedSolution) suggestedSolution = output.suggestedSolution
-                    if (output.status) status = output.status
-                    if (output.analysis) fullContent = output.analysis
+                    // Update message in real-time
+                    setState((prev) => ({
+                      ...prev,
+                      messages: prev.messages.map((m) =>
+                        m.id === thinkingMessage.id
+                          ? { ...m, content: fullContent }
+                          : m
+                      ),
+                    }))
                   }
                 } catch {
                   // Skip invalid JSON
@@ -163,9 +160,7 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
                 ? {
                     ...m,
                     content: fullContent,
-                    chainOfThought,
-                    status,
-                    suggestedSolution,
+                    status: 'complete',
                   }
                 : m
             ),
@@ -174,10 +169,8 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
           const duckResponse: DuckResponse = {
             duckId: persona.id,
             content: fullContent,
-            chainOfThought,
-            status,
-            followUpQuestions,
-            suggestedSolution,
+            chainOfThought: [],
+            status: 'complete',
           }
 
           setState((prev) => {
