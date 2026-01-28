@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { useCommittee } from '@/hooks/use-committee'
 import { DEFAULT_PERSONAS } from '@/lib/types'
 import type { DuckPersona } from '@/lib/types'
-import { Users, ChevronRight } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function RubberDuckCommittee() {
@@ -38,7 +38,13 @@ export default function RubberDuckCommittee() {
             onClick={() => setIsPanelOpen(!isPanelOpen)}
             className="gap-1.5"
           >
-            <Users className="h-4 w-4" />
+            <Image
+              src="/icons/duck-icon-32.png"
+              alt="Ducks"
+              width={18}
+              height={18}
+              className="brightness-0 invert"
+            />
             <span className="hidden sm:inline">Personas</span>
             <ChevronRight className={cn(
               "h-3.5 w-3.5 transition-transform",
