@@ -392,7 +392,7 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
           currentPhase: 'concluded',
         }))
 
-        // Add voting result message with the winning solution
+        // Add voting result message with the winning solution in the suggestedSolution box
         const winnerName = personas.find((p) => p.id === result.winner)?.name
         const winningSolution = solutions.find((s) => s.duckId === result.winner)?.solution || ''
         
@@ -401,25 +401,14 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
           'orchestrator',
           `## Committee Decision
 
-The committee has voted and **${winnerName}'s approach** has been selected.${
+The committee has voted and **${winnerName}'s approach** has been selected as the recommended solution.${
             result.wasTiebreaker
-              ? ` *(Chair Duck tiebreaker: ${result.tiebreakerReasoning})*`
+              ? `\n\n*Chair Duck tiebreaker: ${result.tiebreakerReasoning}*`
               : ''
+          }`,
+          {
+            suggestedSolution: winningSolution,
           }
-
----
-
-## Recommended Solution
-
-${winningSolution}
-
----
-
-*Voting: ${result.votes.map((v) => {
-  const voterName = personas.find((p) => p.id === v.voterId)?.name
-  const votedForName = personas.find((p) => p.id === v.votedFor)?.name
-  return `${voterName} → ${votedForName}`
-}).join(' | ')}*`
         )
       }
     } catch (error) {
