@@ -231,18 +231,30 @@ function RoundDisplay({
                       Voting Results
                     </h3>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {round.votingBlock.votes.map((vote, idx) => {
                       const voter = personas.find((p) => p.id === vote.voterId)
                       const votedFor = personas.find((p) => p.id === vote.votedFor)
+                      const voterColor = voter?.color ? `var(--${voter.color})` : 'var(--muted)'
                       return (
                         <div
                           key={idx}
-                          className="flex items-center gap-3 text-sm"
+                          className="rounded-lg border p-3"
+                          style={{
+                            borderColor: `color-mix(in oklch, ${voterColor} 40%, transparent)`,
+                            backgroundColor: `color-mix(in oklch, ${voterColor} 5%, transparent)`,
+                          }}
                         >
-                          <PersonaBadge persona={voter} variant="outline" />
-                          <span className="text-muted-foreground">voted for</span>
-                          <PersonaBadge persona={votedFor} variant="filled" />
+                          <div className="flex items-center gap-2 mb-2">
+                            <PersonaBadge persona={voter} variant="outline" />
+                            <span className="text-muted-foreground text-sm">voted for</span>
+                            <PersonaBadge persona={votedFor} variant="filled" />
+                          </div>
+                          {vote.reasoning && (
+                            <p className="text-sm text-muted-foreground pl-2 border-l-2 italic" style={{ borderColor: voterColor }}>
+                              &ldquo;{vote.reasoning}&rdquo;
+                            </p>
+                          )}
                         </div>
                       )
                     })}
