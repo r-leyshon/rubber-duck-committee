@@ -177,7 +177,7 @@ ALWAYS ask for context when:
 ]
 
 // Message types for the committee
-export type MessageRole = 'user' | 'duck' | 'orchestrator' | 'system'
+export type MessageRole = 'user' | 'duck' | 'orchestrator' | 'system' | 'event'
 
 export interface ChainOfThought {
   step: number

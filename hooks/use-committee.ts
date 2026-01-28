@@ -244,7 +244,9 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
       // Wait for all ducks to respond
       const duckResults = await Promise.all(duckPromises)
 
-      // Now get orchestrator summary
+      // Now get orchestrator summary (structured output)
+      let shouldInitiateVoting = false
+      
       try {
         const orchestratorResponse = await fetch('/api/committee/orchestrate', {
           method: 'POST',
@@ -259,7 +261,6 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
               followUpQuestions: r.followUpQuestions,
               suggestedSolution: r.suggestedSolution,
             })),
-            phase: state.currentPhase,
           }),
         })
 
@@ -267,7 +268,13 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
           const reader = orchestratorResponse.body.getReader()
           const decoder = new TextDecoder()
           let buffer = ''
-          let orchestratorContent = ''
+          
+          // Track the latest partial object from Chair Duck
+          let latestChairObject: {
+            status?: 'needs-context' | 'ready-to-vote' | 'in-progress'
+            message?: string
+            consolidatedQuestions?: string[]
+          } = {}
 
           const orchestratorMessage = addMessage('orchestrator', 'orchestrator', '', {
             status: 'thinking',
@@ -287,19 +294,19 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
                 const data = trimmed.slice(5).trim()
                 if (data === '[DONE]') continue
                 try {
-                  const chunk = JSON.parse(data)
-                  if (chunk.type === 'text-delta' && chunk.delta) {
-                    orchestratorContent += chunk.delta
-                    // Update message in real-time
-                    setState((prev) => ({
-                      ...prev,
-                      messages: prev.messages.map((m) =>
-                        m.id === orchestratorMessage.id
-                          ? { ...m, content: orchestratorContent }
-                          : m
-                      ),
-                    }))
-                  }
+                  const partialObject = JSON.parse(data)
+                  latestChairObject = partialObject
+                  
+                  // Update message in real-time with the message content
+                  const content = partialObject.message || ''
+                  setState((prev) => ({
+                    ...prev,
+                    messages: prev.messages.map((m) =>
+                      m.id === orchestratorMessage.id
+                        ? { ...m, content }
+                        : m
+                    ),
+                  }))
                 } catch {
                   // Skip invalid JSON
                 }
@@ -307,43 +314,61 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
             }
           }
 
-          // Mark orchestrator message complete
+          // Determine final status based on Chair Duck's structured response
+          const chairStatus = latestChairObject.status || 'in-progress'
+          const finalContent = latestChairObject.message || ''
+          
+          // Map Chair status to message status
+          let messageStatus: 'complete' | 'needs-context' = 'complete'
+          if (chairStatus === 'needs-context') {
+            messageStatus = 'needs-context'
+          }
+
+          // Mark orchestrator message complete with appropriate status
           setState((prev) => ({
             ...prev,
             messages: prev.messages.map((m) =>
               m.id === orchestratorMessage.id
-                ? { ...m, status: 'complete' }
+                ? { ...m, content: finalContent, status: messageStatus }
                 : m
             ),
           }))
+
+          // Check if Chair Duck says we're ready to vote
+          if (chairStatus === 'ready-to-vote') {
+            shouldInitiateVoting = true
+            setState((prev) => ({ ...prev, currentPhase: 'proposing' }))
+          }
         }
       } catch (error) {
         console.error('[v0] Orchestrator error:', error)
       }
 
-      // Check if all ducks have solutions (move to voting phase)
-      const allHaveSolutions = duckResults.every(
-        (r) => r.suggestedSolution && r.status === 'complete'
-      )
-
-      if (allHaveSolutions) {
-        setState((prev) => ({ ...prev, currentPhase: 'proposing' }))
-      }
-
       setState((prev) => ({ ...prev, isProcessing: false }))
+
+      // Auto-initiate voting if Chair Duck indicated ready
+      if (shouldInitiateVoting) {
+        // Add a brief delay for UX
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+        await initiateVotingInternal(duckResults)
+      }
     },
-    [personas, state.messages, state.currentPhase, addMessage, updateDuckStatus]
+    [personas, state.messages, state.currentPhase, addMessage, updateDuckStatus, initiateVotingInternal]
   )
 
-  const initiateVoting = useCallback(async () => {
+  // Internal voting function that can be called with duck results directly
+  async function initiateVotingInternal(duckResults: DuckResponse[]) {
     setState((prev) => ({ ...prev, currentPhase: 'voting', isProcessing: true }))
 
-    const solutions = Array.from(state.duckResponses.entries())
-      .filter(([, response]) => response.suggestedSolution)
-      .map(([duckId, response]) => ({
-        duckId,
-        duckName: personas.find((p) => p.id === duckId)?.name || duckId,
-        solution: response.suggestedSolution!,
+    // Add "Voting initiated" event message
+    addMessage('event', 'orchestrator', 'Voting initiated', { status: 'complete' })
+
+    const solutions = duckResults
+      .filter((r) => r.suggestedSolution)
+      .map((r) => ({
+        duckId: r.duckId,
+        duckName: personas.find((p) => p.id === r.duckId)?.name || r.duckId,
+        solution: r.suggestedSolution!,
       }))
 
     const userProblem = state.messages.find((m) => m.role === 'user')?.content || ''
@@ -402,6 +427,12 @@ ${winningSolution}
     }
 
     setState((prev) => ({ ...prev, isProcessing: false }))
+  }
+
+  // External voting function (for manual trigger if needed)
+  const initiateVoting = useCallback(async () => {
+    const duckResults = Array.from(state.duckResponses.values())
+    await initiateVotingInternal(duckResults)
   }, [state.duckResponses, state.messages, personas, addMessage])
 
   const resetSession = useCallback(() => {
