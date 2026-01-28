@@ -164,6 +164,14 @@ function EmptyState() {
             description="Ducks vote to select the best solution"
           />
         </div>
+        
+        {/* AI Disclaimer */}
+        <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200/80">
+          <p>
+            <strong>Disclaimer:</strong> This application uses AI language models which can make mistakes. 
+            Always exercise due diligence and verify any advice before following recommendations from the duck committee.
+          </p>
+        </div>
       </div>
     </div>
   )

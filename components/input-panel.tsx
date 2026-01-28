@@ -82,9 +82,14 @@ export function InputPanel({
             )}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-2 text-center">
-          Press Enter to send, Shift+Enter for new line. Use the microphone for voice input.
-        </p>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-1 mt-2 text-xs text-muted-foreground">
+          <p>
+            Press Enter to send, Shift+Enter for new line. Use the microphone for voice input.
+          </p>
+          <p className="text-amber-500/70">
+            AI can make mistakes. Verify important information.
+          </p>
+        </div>
       </div>
     </div>
   )

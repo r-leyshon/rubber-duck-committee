@@ -78,7 +78,7 @@ ALWAYS ask clarifying questions when:
 "Precision in diagnosis requires precision in description. Let us gather the facts."`,
     color: 'duck-purple',
     enabledModes: ['probing-questions', 'root-cause-analysis', 'debugging'],
-    hasWebSearch: true,
+    hasWebSearch: false,
   },
   {
     id: 'creative',
@@ -126,7 +126,7 @@ ALWAYS ask questions when:
 "Wait, wait, wait... before I go off on a tangent, let me make sure I understand what we're actually dealing with here!"`,
     color: 'duck-orange',
     enabledModes: ['solution-brainstorm', 'architecture-review'],
-    hasWebSearch: true,
+    hasWebSearch: false,
   },
   {
     id: 'pragmatic',
