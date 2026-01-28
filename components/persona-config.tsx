@@ -20,22 +20,20 @@ interface PersonaConfigProps {
   onUpdate: (persona: DuckPersona) => void
 }
 
-const PERSONA_COLORS: Record<string, string> = {
-  'duck-analytical': 'bg-duck-analytical/20 border-duck-analytical/50 text-duck-analytical',
-  'duck-creative': 'bg-duck-creative/20 border-duck-creative/50 text-duck-creative',
-  'duck-pragmatic': 'bg-duck-pragmatic/20 border-duck-pragmatic/50 text-duck-pragmatic',
-}
-
-const PERSONA_ACCENT: Record<string, string> = {
-  'duck-analytical': 'bg-duck-analytical',
-  'duck-creative': 'bg-duck-creative',
-  'duck-pragmatic': 'bg-duck-pragmatic',
-}
-
+// Expanded color palette
 const COLOR_OPTIONS = [
-  { id: 'duck-analytical', label: 'Cyan', class: 'bg-duck-analytical' },
-  { id: 'duck-creative', label: 'Orange', class: 'bg-duck-creative' },
-  { id: 'duck-pragmatic', label: 'Green', class: 'bg-duck-pragmatic' },
+  { id: 'duck-cyan', label: 'Cyan', hue: 200 },
+  { id: 'duck-orange', label: 'Orange', hue: 45 },
+  { id: 'duck-green', label: 'Green', hue: 145 },
+  { id: 'duck-purple', label: 'Purple', hue: 300 },
+  { id: 'duck-pink', label: 'Pink', hue: 350 },
+  { id: 'duck-yellow', label: 'Yellow', hue: 90 },
+  { id: 'duck-red', label: 'Red', hue: 25 },
+  { id: 'duck-blue', label: 'Blue', hue: 260 },
+  { id: 'duck-teal', label: 'Teal', hue: 180 },
+  { id: 'duck-lime', label: 'Lime', hue: 125 },
+  { id: 'duck-amber', label: 'Amber', hue: 70 },
+  { id: 'duck-indigo', label: 'Indigo', hue: 280 },
 ]
 
 // Extract key traits from system prompt for preview
@@ -153,21 +151,23 @@ export function PersonaConfig({ persona, onUpdate }: PersonaConfigProps) {
     }
   }
 
+  const activeColor = isOpen ? editedColor : persona.color
+  const colorVar = `var(--${activeColor})`
+
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <div
-        className={cn(
-          'rounded-lg border p-4 transition-all duration-200',
-          PERSONA_COLORS[isOpen ? editedColor : persona.color]
-        )}
+        className="rounded-lg border-2 p-4 transition-all duration-200"
+        style={{
+          borderColor: colorVar,
+          backgroundColor: `color-mix(in oklch, ${colorVar} 15%, transparent)`,
+        }}
       >
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div
-              className={cn(
-                'h-10 w-10 rounded-full flex items-center justify-center text-background font-bold text-lg shrink-0',
-                PERSONA_ACCENT[isOpen ? editedColor : persona.color]
-              )}
+              className="h-10 w-10 rounded-full flex items-center justify-center text-background font-bold text-lg shrink-0"
+              style={{ backgroundColor: colorVar }}
             >
               {(isOpen ? editedName : persona.name).charAt(0)}
             </div>
@@ -252,18 +252,18 @@ export function PersonaConfig({ persona, onUpdate }: PersonaConfigProps) {
               <Palette className="h-4 w-4" />
               Color
             </label>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {COLOR_OPTIONS.map((color) => (
                 <button
                   key={color.id}
                   onClick={() => setEditedColor(color.id)}
                   className={cn(
-                    'h-8 w-8 rounded-full transition-all',
-                    color.class,
+                    'h-7 w-7 rounded-full transition-all',
                     editedColor === color.id 
                       ? 'ring-2 ring-offset-2 ring-offset-background ring-foreground scale-110' 
-                      : 'opacity-60 hover:opacity-100'
+                      : 'opacity-70 hover:opacity-100 hover:scale-105'
                   )}
+                  style={{ backgroundColor: `var(--${color.id})` }}
                   title={color.label}
                 />
               ))}
@@ -276,25 +276,24 @@ export function PersonaConfig({ persona, onUpdate }: PersonaConfigProps) {
               Enabled Modes
             </label>
             <div className="flex flex-wrap gap-2">
-              {DUCK_MODES.map((mode) => (
-                <Badge
-                  key={mode.id}
-                  variant={
-                    persona.enabledModes.includes(mode.id)
-                      ? 'default'
-                      : 'outline'
-                  }
-                  className={cn(
-                    'cursor-pointer transition-all',
-                    persona.enabledModes.includes(mode.id)
-                      ? PERSONA_ACCENT[editedColor]
-                      : 'hover:bg-secondary'
-                  )}
-                  onClick={() => toggleMode(mode.id)}
-                >
-                  {mode.label}
-                </Badge>
-              ))}
+              {DUCK_MODES.map((mode) => {
+                const isEnabled = persona.enabledModes.includes(mode.id)
+                return (
+                  <button
+                    key={mode.id}
+                    onClick={() => toggleMode(mode.id)}
+                    className={cn(
+                      'px-2.5 py-0.5 rounded-full text-xs font-medium transition-all',
+                      isEnabled
+                        ? 'text-background'
+                        : 'border border-border hover:bg-secondary text-foreground'
+                    )}
+                    style={isEnabled ? { backgroundColor: colorVar } : undefined}
+                  >
+                    {mode.label}
+                  </button>
+                )
+              })}
             </div>
           </div>
 

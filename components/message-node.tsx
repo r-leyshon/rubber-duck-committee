@@ -17,25 +17,24 @@ import type { CommitteeMessage, ChainOfThought, DuckPersonaId, QuestionWithOptio
 interface MessageNodeProps {
   message: CommitteeMessage
   duckName?: string
+  duckColor?: string // CSS variable name like 'duck-cyan'
   showConnector?: 'top' | 'bottom' | 'both' | 'none'
   isConverging?: boolean
   onAnswerSubmit?: (answers: string) => void
 }
 
-const PARTICIPANT_COLORS: Record<string, string> = {
-  analytical: 'border-duck-analytical/50 bg-duck-analytical/5',
-  creative: 'border-duck-creative/50 bg-duck-creative/5',
-  pragmatic: 'border-duck-pragmatic/50 bg-duck-pragmatic/5',
-  orchestrator: 'border-orchestrator/50 bg-orchestrator/5',
-  user: 'border-primary/50 bg-primary/5',
-}
-
-const PARTICIPANT_ACCENT: Record<string, string> = {
-  analytical: 'bg-duck-analytical',
-  creative: 'bg-duck-creative',
-  pragmatic: 'bg-duck-pragmatic',
-  orchestrator: 'bg-orchestrator',
-  user: 'bg-primary',
+// Fallback colors for orchestrator and user
+const SPECIAL_COLORS: Record<string, { border: string; bg: string; accent: string }> = {
+  orchestrator: {
+    border: 'var(--orchestrator)',
+    bg: 'color-mix(in oklch, var(--orchestrator) 5%, transparent)',
+    accent: 'var(--orchestrator)',
+  },
+  user: {
+    border: 'var(--primary)',
+    bg: 'color-mix(in oklch, var(--primary) 5%, transparent)',
+    accent: 'var(--primary)',
+  },
 }
 
 const STATUS_ICONS = {
@@ -181,18 +180,37 @@ function QuestionsPanel({
 export function MessageNode({
   message,
   duckName,
+  duckColor,
   showConnector = 'none',
   isConverging = false,
   onAnswerSubmit,
 }: MessageNodeProps) {
-  const participantKey = message.participantId as string
   const isOrchestrator = message.role === 'orchestrator' || message.participantId === 'orchestrator'
+  const isUser = message.role === 'user'
   const displayName =
-    message.role === 'user'
+    isUser
       ? 'You'
       : isOrchestrator
         ? 'Chair Duck'
         : duckName || message.participantId
+
+  // Determine colors based on participant type
+  const getColors = () => {
+    if (isUser) return SPECIAL_COLORS.user
+    if (isOrchestrator) return SPECIAL_COLORS.orchestrator
+    if (duckColor) {
+      const colorVar = `var(--${duckColor})`
+      return {
+        border: colorVar,
+        bg: `color-mix(in oklch, ${colorVar} 8%, transparent)`,
+        accent: colorVar,
+      }
+    }
+    // Fallback to primary
+    return SPECIAL_COLORS.user
+  }
+  
+  const colors = getColors()
 
   return (
     <div className="relative flex flex-col items-center">
@@ -244,19 +262,20 @@ export function MessageNode({
       {/* Message card */}
       <div
         className={cn(
-          'w-full max-w-2xl rounded-lg border p-4 transition-all duration-300 overflow-hidden',
-          PARTICIPANT_COLORS[participantKey],
+          'w-full max-w-2xl rounded-lg border-2 p-4 transition-all duration-300 overflow-hidden',
           message.status === 'thinking' && 'ring-1 ring-node-line-active animate-pulse'
         )}
+        style={{
+          borderColor: colors.border,
+          backgroundColor: colors.bg,
+        }}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <div
-              className={cn(
-                'h-6 w-6 rounded-full flex items-center justify-center overflow-hidden',
-                PARTICIPANT_ACCENT[participantKey]
-              )}
+              className="h-6 w-6 rounded-full flex items-center justify-center overflow-hidden"
+              style={{ backgroundColor: colors.accent }}
             >
               {message.role === 'user' ? (
                 <span className="text-xs font-bold text-background">Y</span>

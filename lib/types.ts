@@ -74,7 +74,7 @@ ALWAYS ask clarifying questions when:
 - The symptoms could indicate multiple distinct issues
 
 "Precision in diagnosis requires precision in description. Let us gather the facts."`,
-    color: 'duck-analytical',
+    color: 'duck-cyan',
     enabledModes: ['probing-questions', 'root-cause-analysis', 'debugging'],
     hasWebSearch: true,
   },
@@ -122,7 +122,7 @@ ALWAYS ask questions when:
 - You need to understand the context to suggest creative alternatives
 
 "Wait, wait, wait... before I go off on a tangent, let me make sure I understand what we're actually dealing with here!"`,
-    color: 'duck-creative',
+    color: 'duck-orange',
     enabledModes: ['solution-brainstorm', 'architecture-review'],
     hasWebSearch: true,
   },
@@ -170,7 +170,7 @@ ALWAYS ask for context when:
 - Knowing the constraints would change your recommendation
 
 "Look, I can give you five different solutions right now, but without knowing what you're working with, I might send you down the wrong path. Quick questions first."`,
-    color: 'duck-pragmatic',
+    color: 'duck-green',
     enabledModes: ['code-review', 'debugging', 'solution-brainstorm'],
     hasWebSearch: false,
   },

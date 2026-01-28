@@ -26,10 +26,24 @@
   --ring: oklch(0.75 0.15 200);
   --radius: 0.625rem;
   
-  /* Duck persona colors */
-  --duck-analytical: oklch(0.7 0.18 200);
-  --duck-creative: oklch(0.7 0.18 45);
-  --duck-pragmatic: oklch(0.7 0.15 145);
+  /* Duck persona colors - expanded palette */
+  --duck-cyan: oklch(0.7 0.18 200);
+  --duck-orange: oklch(0.7 0.18 45);
+  --duck-green: oklch(0.7 0.15 145);
+  --duck-purple: oklch(0.65 0.2 300);
+  --duck-pink: oklch(0.7 0.18 350);
+  --duck-yellow: oklch(0.85 0.18 90);
+  --duck-red: oklch(0.65 0.22 25);
+  --duck-blue: oklch(0.6 0.2 260);
+  --duck-teal: oklch(0.65 0.15 180);
+  --duck-lime: oklch(0.75 0.2 125);
+  --duck-amber: oklch(0.75 0.18 70);
+  --duck-indigo: oklch(0.55 0.22 280);
+  
+  /* Legacy aliases for backwards compatibility */
+  --duck-analytical: var(--duck-cyan);
+  --duck-creative: var(--duck-orange);
+  --duck-pragmatic: var(--duck-green);
   --orchestrator: oklch(0.85 0.1 85);
   
   /* Status colors */
@@ -97,7 +111,21 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   
-  /* Duck persona colors */
+  /* Duck persona colors - expanded palette */
+  --color-duck-cyan: var(--duck-cyan);
+  --color-duck-orange: var(--duck-orange);
+  --color-duck-green: var(--duck-green);
+  --color-duck-purple: var(--duck-purple);
+  --color-duck-pink: var(--duck-pink);
+  --color-duck-yellow: var(--duck-yellow);
+  --color-duck-red: var(--duck-red);
+  --color-duck-blue: var(--duck-blue);
+  --color-duck-teal: var(--duck-teal);
+  --color-duck-lime: var(--duck-lime);
+  --color-duck-amber: var(--duck-amber);
+  --color-duck-indigo: var(--duck-indigo);
+  
+  /* Legacy aliases */
   --color-duck-analytical: var(--duck-analytical);
   --color-duck-creative: var(--duck-creative);
   --color-duck-pragmatic: var(--duck-pragmatic);

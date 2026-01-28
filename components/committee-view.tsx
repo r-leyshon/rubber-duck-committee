@@ -186,6 +186,7 @@ function RoundDisplay({
                     key={message.id}
                     message={message}
                     duckName={persona.name}
+                    duckColor={persona.color}
                   />
                 ))}
               </div>
