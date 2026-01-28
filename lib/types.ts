@@ -74,7 +74,7 @@ ALWAYS ask clarifying questions when:
 - The symptoms could indicate multiple distinct issues
 
 "Precision in diagnosis requires precision in description. Let us gather the facts."`,
-    color: 'duck-cyan',
+    color: 'duck-purple',
     enabledModes: ['probing-questions', 'root-cause-analysis', 'debugging'],
     hasWebSearch: true,
   },

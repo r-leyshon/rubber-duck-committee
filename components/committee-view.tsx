@@ -97,35 +97,205 @@ interface ConversationRound {
   votingBlock: VotingBlock | null  // Voting that occurred in this round
 }
 
+// Consistent sizing constants for all nodes and edges
+const EDGE_STROKE_WIDTH = 1  // Uniform edge weight - 1px for subtle lines
+const NODE_SIZE = 5          // Small node size
+
+// Node dot component for connection points
+function NodeDot({ color, size = NODE_SIZE }: { color: string; size?: number }) {
+  return (
+    <div
+      className="rounded-full shrink-0"
+      style={{
+        width: size,
+        height: size,
+        backgroundColor: color,
+        boxShadow: `0 0 6px ${color}`,
+      }}
+    />
+  )
+}
+
+// Color constants
+const USER_COLOR = 'var(--user)'
+const ORCHESTRATOR_COLOR = 'var(--orchestrator)'
+const DEFAULT_LINE_COLOR = 'var(--node-line)'
+
 // Connector line component for visual flow
-function ConnectorLine({ direction }: { direction: 'down' | 'converge' | 'diverge' }) {
+// Uses viewBox with non-scaling-stroke for consistent 2px line weights
+function ConnectorLine({
+  direction,
+  colors,
+  sourceColor,
+}: {
+  direction: 'down' | 'converge' | 'diverge'
+  colors?: string[] // Array of CSS color values for each line (for diverge/converge)
+  sourceColor?: string // Color for the source node (used in diverge)
+}) {
+  // Get colors with fallbacks
+  const lineColors = colors || [DEFAULT_LINE_COLOR, DEFAULT_LINE_COLOR, DEFAULT_LINE_COLOR]
+  const getColor = (index: number) => lineColors[index] || DEFAULT_LINE_COLOR
+  const topSourceColor = sourceColor || USER_COLOR
+
   if (direction === 'down') {
+    const color = lineColors[0] || ORCHESTRATOR_COLOR
     return (
-      <div className="flex justify-center h-8">
-        <div className="w-px bg-border" />
-      </div>
-    )
-  }
-  
-  if (direction === 'diverge') {
-    return (
-      <div className="relative h-12">
-        <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
-          <line x1="50%" y1="0" x2="16.67%" y2="100%" stroke="var(--node-line)" strokeWidth="1" />
-          <line x1="50%" y1="0" x2="50%" y2="100%" stroke="var(--node-line)" strokeWidth="1" />
-          <line x1="50%" y1="0" x2="83.33%" y2="100%" stroke="var(--node-line)" strokeWidth="1" />
+      <div className="flex flex-col items-center h-10">
+        <svg className="flex-1 w-4" viewBox="0 0 10 100" preserveAspectRatio="none">
+          <path
+            d="M 5 0 L 5 100"
+            fill="none"
+            stroke={color}
+            strokeWidth={EDGE_STROKE_WIDTH}
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
         </svg>
       </div>
     )
   }
   
-  // converge
+  if (direction === 'diverge') {
+    // Diverging: one source at top center splits to three destinations
+    // Use separate SVGs for each path to avoid gradient ID conflicts
+    return (
+      <div className="relative h-20">
+        {/* Left curved path */}
+        <svg 
+          className="absolute inset-0 w-full h-full overflow-visible"
+          viewBox="0 0 600 100"
+          preserveAspectRatio="none"
+        >
+          <defs>
+            <linearGradient id="divLeftGrad" x1="50%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={topSourceColor} />
+              <stop offset="100%" stopColor={getColor(0)} />
+            </linearGradient>
+          </defs>
+          <path
+            d="M 300 0 Q 300 50, 100 100"
+            fill="none"
+            stroke="url(#divLeftGrad)"
+            strokeWidth={EDGE_STROKE_WIDTH}
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+        
+        {/* Center straight path with gradient - use userSpaceOnUse for vertical lines */}
+        <svg 
+          className="absolute inset-0 w-full h-full overflow-visible"
+          viewBox="0 0 600 100"
+          preserveAspectRatio="none"
+        >
+          <defs>
+            <linearGradient id="divCenterGrad" gradientUnits="userSpaceOnUse" x1="300" y1="0" x2="300" y2="100">
+              <stop offset="0%" stopColor={topSourceColor} />
+              <stop offset="100%" stopColor={getColor(1)} />
+            </linearGradient>
+          </defs>
+          <path
+            d="M 300 0 L 300 100"
+            fill="none"
+            stroke="url(#divCenterGrad)"
+            strokeWidth={EDGE_STROKE_WIDTH}
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+        
+        {/* Right curved path */}
+        <svg 
+          className="absolute inset-0 w-full h-full overflow-visible"
+          viewBox="0 0 600 100"
+          preserveAspectRatio="none"
+        >
+          <defs>
+            <linearGradient id="divRightGrad" x1="50%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor={topSourceColor} />
+              <stop offset="100%" stopColor={getColor(2)} />
+            </linearGradient>
+          </defs>
+          <path
+            d="M 300 0 Q 300 50, 500 100"
+            fill="none"
+            stroke="url(#divRightGrad)"
+            strokeWidth={EDGE_STROKE_WIDTH}
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+      </div>
+    )
+  }
+  
+  // converge: three sources merge to one destination (orchestrator)
   return (
-    <div className="relative h-12">
-      <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
-        <line x1="16.67%" y1="0" x2="50%" y2="100%" stroke="var(--node-line)" strokeWidth="1" />
-        <line x1="50%" y1="0" x2="50%" y2="100%" stroke="var(--node-line)" strokeWidth="1" />
-        <line x1="83.33%" y1="0" x2="50%" y2="100%" stroke="var(--node-line)" strokeWidth="1" />
+    <div className="relative h-20">
+      {/* Left curved path */}
+      <svg 
+        className="absolute inset-0 w-full h-full overflow-visible"
+        viewBox="0 0 600 100"
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <linearGradient id="convLeftGrad" x1="0%" y1="0%" x2="50%" y2="100%">
+            <stop offset="0%" stopColor={getColor(0)} />
+            <stop offset="100%" stopColor={ORCHESTRATOR_COLOR} />
+          </linearGradient>
+        </defs>
+        <path
+          d="M 100 0 Q 100 50, 300 100"
+          fill="none"
+          stroke="url(#convLeftGrad)"
+          strokeWidth={EDGE_STROKE_WIDTH}
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      
+      {/* Center straight path with gradient - use userSpaceOnUse for vertical lines */}
+      <svg 
+        className="absolute inset-0 w-full h-full overflow-visible"
+        viewBox="0 0 600 100"
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <linearGradient id="convCenterGrad" gradientUnits="userSpaceOnUse" x1="300" y1="0" x2="300" y2="100">
+            <stop offset="0%" stopColor={getColor(1)} />
+            <stop offset="100%" stopColor={ORCHESTRATOR_COLOR} />
+          </linearGradient>
+        </defs>
+        <path
+          d="M 300 0 L 300 100"
+          fill="none"
+          stroke="url(#convCenterGrad)"
+          strokeWidth={EDGE_STROKE_WIDTH}
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      
+      {/* Right curved path */}
+      <svg 
+        className="absolute inset-0 w-full h-full overflow-visible"
+        viewBox="0 0 600 100"
+        preserveAspectRatio="none"
+      >
+        <defs>
+          <linearGradient id="convRightGrad" x1="100%" y1="0%" x2="50%" y2="100%">
+            <stop offset="0%" stopColor={getColor(2)} />
+            <stop offset="100%" stopColor={ORCHESTRATOR_COLOR} />
+          </linearGradient>
+        </defs>
+        <path
+          d="M 500 0 Q 500 50, 300 100"
+          fill="none"
+          stroke="url(#convRightGrad)"
+          strokeWidth={EDGE_STROKE_WIDTH}
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
       </svg>
     </div>
   )
@@ -155,17 +325,22 @@ function RoundDisplay({
   onAnswerSubmit?: (answers: string) => void
   showNextConnector: boolean
 }) {
+  // Get persona colors in consistent order for connector lines
+  const personaColors = personas.map((p) => `var(--${p.color})`)
+  
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* User message */}
-      <div className="flex justify-center">
+      <div className="flex flex-col items-center">
         <div className="max-w-2xl w-full">
           <MessageNode message={round.userMessage} />
         </div>
       </div>
 
-      {/* Connector to duck responses */}
-      {round.duckMessages.length > 0 && <ConnectorLine direction="diverge" />}
+      {/* Connector to duck responses - diverging from user message */}
+      {round.duckMessages.length > 0 && (
+        <ConnectorLine direction="diverge" colors={personaColors} sourceColor={USER_COLOR} />
+      )}
 
       {/* Duck responses for this round */}
       {round.duckMessages.length > 0 && (
@@ -195,9 +370,9 @@ function RoundDisplay({
         </div>
       )}
 
-      {/* Connector to orchestrator */}
+      {/* Connector to orchestrator - converging to Chair Duck */}
       {round.orchestratorMessage && round.duckMessages.length > 0 && (
-        <ConnectorLine direction="converge" />
+        <ConnectorLine direction="converge" colors={personaColors} />
       )}
 
       {/* Orchestrator message for this round */}
@@ -216,13 +391,13 @@ function RoundDisplay({
       {/* Voting block if this round triggered voting */}
       {round.votingBlock && (
         <>
-          <ConnectorLine direction="down" />
+          <ConnectorLine direction="down" colors={['var(--orchestrator)']} />
           <EventNode content={round.votingBlock.eventMessage.content} />
           
           {/* Voting results */}
           {round.votingBlock.votes.length > 0 && (
             <>
-              <ConnectorLine direction="down" />
+              <ConnectorLine direction="down" colors={['var(--orchestrator)']} />
               <div className="flex justify-center">
                 <div className="max-w-2xl w-full p-6 rounded-lg border border-orchestrator/50 bg-orchestrator/5">
                   <div className="flex items-center gap-2 mb-4">
@@ -275,7 +450,7 @@ function RoundDisplay({
           {/* Chair Duck's final message with the winning solution */}
           {round.votingBlock.resultMessage && (
             <>
-              <ConnectorLine direction="down" />
+              <ConnectorLine direction="down" colors={['var(--orchestrator)']} />
               <div className="flex justify-center">
                 <div className="max-w-2xl w-full">
                   <MessageNode
@@ -291,7 +466,7 @@ function RoundDisplay({
 
       {/* Connector to next round if there is one */}
       {showNextConnector && (round.orchestratorMessage || round.votingBlock) && (
-        <ConnectorLine direction="down" />
+        <ConnectorLine direction="down" colors={['var(--orchestrator)']} />
       )}
     </div>
   )

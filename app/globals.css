@@ -40,8 +40,11 @@
   --duck-amber: oklch(0.75 0.18 70);
   --duck-indigo: oklch(0.55 0.22 280);
   
+  /* User color - reserved for user input */
+  --user: oklch(0.7 0.18 200);
+  
   /* Legacy aliases for backwards compatibility */
-  --duck-analytical: var(--duck-cyan);
+  --duck-analytical: var(--duck-purple);
   --duck-creative: var(--duck-orange);
   --duck-pragmatic: var(--duck-green);
   --orchestrator: oklch(0.85 0.1 85);
@@ -124,6 +127,9 @@
   --color-duck-lime: var(--duck-lime);
   --color-duck-amber: var(--duck-amber);
   --color-duck-indigo: var(--duck-indigo);
+  
+  /* User color */
+  --color-user: var(--user);
   
   /* Legacy aliases */
   --color-duck-analytical: var(--duck-analytical);
