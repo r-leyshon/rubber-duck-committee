@@ -3,20 +3,23 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
-import { ChevronDown, Loader2, CheckCircle2, HelpCircle } from 'lucide-react'
+import { ChevronDown, Loader2, CheckCircle2, HelpCircle, MessageSquare, Send } from 'lucide-react'
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 import ReactMarkdown from 'react-markdown'
-import type { CommitteeMessage, ChainOfThought, DuckPersonaId } from '@/lib/types'
+import type { CommitteeMessage, ChainOfThought, DuckPersonaId, QuestionWithOptions } from '@/lib/types'
 
 interface MessageNodeProps {
   message: CommitteeMessage
   duckName?: string
   showConnector?: 'top' | 'bottom' | 'both' | 'none'
   isConverging?: boolean
+  onAnswerSubmit?: (answers: string) => void
 }
 
 const PARTICIPANT_COLORS: Record<string, string> = {
@@ -78,11 +81,109 @@ function ChainOfThoughtPanel({ thoughts }: { thoughts: ChainOfThought[] }) {
   )
 }
 
+// Questions with multiple choice panel
+function QuestionsPanel({ 
+  questions, 
+  onSubmit 
+}: { 
+  questions: QuestionWithOptions[]
+  onSubmit?: (answers: string) => void 
+}) {
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({})
+  const [freeTextAnswers, setFreeTextAnswers] = useState<Record<number, string>>({})
+  const [showFreeText, setShowFreeText] = useState<Record<number, boolean>>({})
+
+  if (!questions || questions.length === 0) return null
+
+  const handleSelectAnswer = (questionIdx: number, answer: string) => {
+    if (answer === 'Other (please specify)' || answer === 'Other' || answer === 'Not sure') {
+      setShowFreeText((prev) => ({ ...prev, [questionIdx]: true }))
+      setSelectedAnswers((prev) => ({ ...prev, [questionIdx]: '' }))
+    } else {
+      setShowFreeText((prev) => ({ ...prev, [questionIdx]: false }))
+      setSelectedAnswers((prev) => ({ ...prev, [questionIdx]: answer }))
+      setFreeTextAnswers((prev) => ({ ...prev, [questionIdx]: '' }))
+    }
+  }
+
+  const handleFreeTextChange = (questionIdx: number, text: string) => {
+    setFreeTextAnswers((prev) => ({ ...prev, [questionIdx]: text }))
+    setSelectedAnswers((prev) => ({ ...prev, [questionIdx]: text }))
+  }
+
+  const handleSubmit = () => {
+    if (!onSubmit) return
+    
+    // Compile answers into a formatted response
+    const answersText = questions
+      .map((q, idx) => {
+        const answer = selectedAnswers[idx]
+        if (!answer) return null
+        return `**${q.question}**\n${answer}`
+      })
+      .filter(Boolean)
+      .join('\n\n')
+    
+    if (answersText) {
+      onSubmit(answersText)
+    }
+  }
+
+  const hasAnyAnswers = Object.values(selectedAnswers).some((a) => a && a.trim())
+
+  return (
+    <div className="mt-4 p-4 rounded-lg bg-status-waiting/10 border border-status-waiting/30 space-y-4">
+      <div className="flex items-center gap-2 text-sm font-medium text-status-waiting">
+        <MessageSquare className="h-4 w-4" />
+        Quick Answers
+      </div>
+      
+      {questions.map((q, qIdx) => (
+        <div key={qIdx} className="space-y-2">
+          <div className="text-sm font-medium text-foreground">{q.question}</div>
+          <div className="flex flex-wrap gap-2">
+            {q.suggestedAnswers.map((answer, aIdx) => (
+              <button
+                key={aIdx}
+                onClick={() => handleSelectAnswer(qIdx, answer)}
+                className={cn(
+                  'px-3 py-1.5 text-xs rounded-full border transition-all',
+                  selectedAnswers[qIdx] === answer && !showFreeText[qIdx]
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-card hover:bg-secondary border-border hover:border-primary/50'
+                )}
+              >
+                {answer}
+              </button>
+            ))}
+          </div>
+          {showFreeText[qIdx] && (
+            <Textarea
+              placeholder="Type your answer..."
+              value={freeTextAnswers[qIdx] || ''}
+              onChange={(e) => handleFreeTextChange(qIdx, e.target.value)}
+              className="mt-2 text-sm min-h-[60px]"
+            />
+          )}
+        </div>
+      ))}
+      
+      {hasAnyAnswers && onSubmit && (
+        <Button onClick={handleSubmit} className="w-full gap-2">
+          <Send className="h-4 w-4" />
+          Submit Answers
+        </Button>
+      )}
+    </div>
+  )
+}
+
 export function MessageNode({
   message,
   duckName,
   showConnector = 'none',
   isConverging = false,
+  onAnswerSubmit,
 }: MessageNodeProps) {
   const participantKey = message.participantId as string
   const isOrchestrator = message.role === 'orchestrator' || message.participantId === 'orchestrator'
@@ -143,7 +244,7 @@ export function MessageNode({
       {/* Message card */}
       <div
         className={cn(
-          'w-full max-w-2xl rounded-lg border p-4 transition-all duration-300',
+          'w-full max-w-2xl rounded-lg border p-4 transition-all duration-300 overflow-hidden',
           PARTICIPANT_COLORS[participantKey],
           message.status === 'thinking' && 'ring-1 ring-node-line-active animate-pulse'
         )}
@@ -195,7 +296,7 @@ export function MessageNode({
         )}
 
         {/* Content */}
-        <div className="text-sm text-foreground/90 prose prose-sm prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:text-foreground prose-strong:text-foreground">
+        <div className="text-sm text-foreground/90 prose prose-sm prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:text-foreground prose-strong:text-foreground break-words overflow-hidden">
           {message.content ? (
             <ReactMarkdown>{message.content}</ReactMarkdown>
           ) : (
@@ -209,10 +310,18 @@ export function MessageNode({
             <div className="text-xs font-medium text-status-complete mb-1">
               Suggested Solution
             </div>
-            <div className="text-sm text-foreground prose prose-sm prose-invert max-w-none">
+            <div className="text-sm text-foreground prose prose-sm prose-invert max-w-none break-words overflow-hidden">
               <ReactMarkdown>{message.suggestedSolution}</ReactMarkdown>
             </div>
           </div>
+        )}
+
+        {/* Questions with multiple choice for quick answers */}
+        {message.questionsWithOptions && message.questionsWithOptions.length > 0 && (
+          <QuestionsPanel 
+            questions={message.questionsWithOptions} 
+            onSubmit={onAnswerSubmit}
+          />
         )}
       </div>
 

@@ -273,7 +273,7 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
           let latestChairObject: {
             status?: 'needs-context' | 'ready-to-vote' | 'in-progress'
             message?: string
-            consolidatedQuestions?: string[]
+            questionsWithOptions?: Array<{ question: string; suggestedAnswers: string[] }>
           } = {}
 
           const orchestratorMessage = addMessage('orchestrator', 'orchestrator', '', {
@@ -324,12 +324,17 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
             messageStatus = 'needs-context'
           }
 
-          // Mark orchestrator message complete with appropriate status
+          // Mark orchestrator message complete with appropriate status and questions
           setState((prev) => ({
             ...prev,
             messages: prev.messages.map((m) =>
               m.id === orchestratorMessage.id
-                ? { ...m, content: finalContent, status: messageStatus }
+                ? { 
+                    ...m, 
+                    content: finalContent, 
+                    status: messageStatus,
+                    questionsWithOptions: latestChairObject.questionsWithOptions,
+                  }
                 : m
             ),
           }))

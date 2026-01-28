@@ -108,6 +108,7 @@ export default function RubberDuckCommittee() {
             isProcessing={isProcessing}
             onInitiateVoting={initiateVoting}
             onReset={resetSession}
+            onAnswerSubmit={submitToCommittee}
           />
         )}
 

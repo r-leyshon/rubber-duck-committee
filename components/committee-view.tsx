@@ -17,6 +17,7 @@ interface CommitteeViewProps {
   isProcessing: boolean
   onInitiateVoting?: () => void  // Optional - voting now auto-triggers
   onReset: () => void
+  onAnswerSubmit?: (answers: string) => void  // For quick answer submission
 }
 
 const PHASE_LABELS = {
@@ -93,6 +94,7 @@ export function CommitteeView({
   votingResult,
   isProcessing,
   onReset,
+  onAnswerSubmit,
 }: CommitteeViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -216,7 +218,7 @@ export function CommitteeView({
                     return (
                       <div
                         key={persona.id}
-                        className="min-w-[300px] max-w-[400px] flex-1"
+                        className="min-w-[300px] max-w-[400px] flex-1 overflow-hidden"
                       >
                         {roundDuckMessages.map((message) => (
                           <MessageNode
@@ -243,6 +245,7 @@ export function CommitteeView({
                     <MessageNode
                       message={round.orchestratorMessage}
                       duckName="Chair Duck"
+                      onAnswerSubmit={onAnswerSubmit}
                     />
                   </div>
                 </div>
@@ -284,17 +287,27 @@ export function CommitteeView({
                           key={idx}
                           className="flex items-start gap-3 text-sm"
                         >
-                          <Badge variant="outline" className="shrink-0">
+                          <Badge 
+                            variant="outline" 
+                            className="shrink-0"
+                            style={{ 
+                              borderColor: `var(--${voter?.color})`,
+                              color: `var(--${voter?.color})`,
+                            }}
+                          >
                             {voter?.name}
                           </Badge>
                           <span className="text-muted-foreground">voted for</span>
                           <Badge
                             className={cn(
-                              'shrink-0',
-                              vote.votedFor === votingResult.winner
-                                ? 'bg-orchestrator text-background'
-                                : ''
+                              'shrink-0 border',
+                              vote.votedFor === votingResult.winner && 'ring-2 ring-orchestrator'
                             )}
+                            style={{ 
+                              backgroundColor: `var(--${votedFor?.color})`,
+                              borderColor: `var(--${votedFor?.color})`,
+                              color: 'var(--background)',
+                            }}
                           >
                             {votedFor?.name}
                           </Badge>

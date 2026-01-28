@@ -185,6 +185,11 @@ export interface ChainOfThought {
   reasoning: string
 }
 
+export interface QuestionWithOptions {
+  question: string
+  suggestedAnswers: string[]
+}
+
 export interface CommitteeMessage {
   id: string
   role: MessageRole
@@ -194,6 +199,7 @@ export interface CommitteeMessage {
   timestamp: Date
   status: 'thinking' | 'complete' | 'needs-context' | 'waiting'
   suggestedSolution?: string
+  questionsWithOptions?: QuestionWithOptions[]
   vote?: DuckPersonaId
 }
 
