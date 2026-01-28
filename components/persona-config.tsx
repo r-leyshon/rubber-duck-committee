@@ -11,7 +11,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { ChevronDown, Search, Pencil, Palette, Sparkles, Loader2 } from 'lucide-react'
+import { ChevronDown, Search, Pencil, Palette, Sparkles, Loader2, Thermometer } from 'lucide-react'
 import type { DuckPersona, DuckMode } from '@/lib/types'
 import { DUCK_MODES } from '@/lib/types'
 
@@ -323,6 +323,28 @@ export function PersonaConfig({ persona, onUpdate }: PersonaConfigProps) {
             />
           </div>
 
+          {/* Temperature Slider */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground flex items-center gap-2">
+              <Thermometer className="h-4 w-4" />
+              Temperature: {(persona.temperature ?? 1.0).toFixed(1)}
+            </label>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground">Precise</span>
+              <input
+                type="range"
+                min="0"
+                max="2"
+                step="0.1"
+                value={persona.temperature ?? 1.0}
+                onChange={(e) => onUpdate({ ...persona, temperature: parseFloat(e.target.value) })}
+                className="flex-1 h-2 bg-background/50 rounded-lg appearance-none cursor-pointer accent-current"
+                style={{ accentColor: colorVar }}
+              />
+              <span className="text-xs text-muted-foreground">Creative</span>
+            </div>
+          </div>
+
           {/* System Prompt Editor */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
@@ -362,6 +384,12 @@ export function PersonaConfig({ persona, onUpdate }: PersonaConfigProps) {
                 <Badge variant="secondary" className="text-xs bg-background/30">
                   <Search className="h-3 w-3 mr-1" />
                   Web
+                </Badge>
+              )}
+              {persona.temperature !== undefined && persona.temperature !== 1.0 && (
+                <Badge variant="secondary" className="text-xs bg-background/30">
+                  <Thermometer className="h-3 w-3 mr-1" />
+                  {persona.temperature.toFixed(1)}
                 </Badge>
               )}
             </div>

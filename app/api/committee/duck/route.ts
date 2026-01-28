@@ -178,11 +178,16 @@ Choose "complete" when you can provide a concrete, actionable solution.`
   // STEP 2: Generate structured response (with grounding context if available)
   const messages = conversationHistory
 
+  // Use persona's model preference or default
+  const modelId = persona.modelId || DEFAULT_MODEL
+  const temperature = persona.temperature ?? 1.0
+
   const result = streamObject({
-    model: vertex(DEFAULT_MODEL),
+    model: vertex(modelId),
     schema: duckResponseSchema,
     system: systemPrompt,
     messages,
+    temperature,
   })
 
   // Stream the object as newline-delimited JSON

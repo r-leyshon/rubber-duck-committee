@@ -30,7 +30,8 @@ export const DEFAULT_MODEL = 'gemini-2.0-flash-001'
 
 // Model aliases for different use cases
 export const MODELS = {
-  fast: 'gemini-2.0-flash-001',
-  pro: 'gemini-1.5-pro',
-  flash: 'gemini-1.5-flash',
+  default: 'gemini-2.0-flash-001',
+  lite: 'gemini-2.0-flash-lite-001',
+  pro: 'gemini-1.5-pro-002',
+  flash: 'gemini-1.5-flash-002',
 } as const
