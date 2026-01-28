@@ -80,16 +80,26 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
       // Add user message
       addMessage('user', 'user', userMessage)
 
-      // Get conversation history for context
-      const conversationHistory = state.messages
-        .filter((m) => m.role === 'user' || m.participantId === 'orchestrator')
-        .map((m) => ({
-          role: (m.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
-          content: m.content,
-        }))
-
       // Fire off parallel requests to all ducks
       const duckPromises = personas.map(async (persona) => {
+        // Build conversation history for THIS specific duck
+        // Include: user messages, orchestrator messages, and THIS duck's own previous responses
+        const duckSpecificHistory = state.messages
+          .filter((m) => 
+            m.role === 'user' || 
+            m.participantId === 'orchestrator' ||
+            m.participantId === persona.id  // Include this duck's own previous responses
+          )
+          .map((m) => ({
+            role: (m.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+            content: m.content,
+          }))
+        
+        // Append the current user message (not yet in state due to async update)
+        const conversationHistory = [
+          ...duckSpecificHistory,
+          { role: 'user' as const, content: userMessage },
+        ]
         updateDuckStatus(persona.id, 'thinking')
 
         // Add thinking message
@@ -249,7 +259,6 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
               followUpQuestions: r.followUpQuestions,
               suggestedSolution: r.suggestedSolution,
             })),
-            conversationHistory,
             phase: state.currentPhase,
           }),
         })
@@ -358,22 +367,34 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
           currentPhase: 'concluded',
         }))
 
-        // Add voting result message
+        // Add voting result message with the winning solution
         const winnerName = personas.find((p) => p.id === result.winner)?.name
+        const winningSolution = solutions.find((s) => s.duckId === result.winner)?.solution || ''
+        
         addMessage(
           'system',
           'orchestrator',
-          `The committee has voted! **${winnerName}'s solution** has been selected as the winning approach.${
+          `## Committee Decision
+
+The committee has voted and **${winnerName}'s approach** has been selected.${
             result.wasTiebreaker
-              ? `\n\n(Tiebreaker: ${result.tiebreakerReasoning})`
+              ? ` *(Chair Duck tiebreaker: ${result.tiebreakerReasoning})*`
               : ''
-          }\n\nVoting breakdown:\n${result.votes
-            .map((v) => {
-              const voterName = personas.find((p) => p.id === v.voterId)?.name
-              const votedForName = personas.find((p) => p.id === v.votedFor)?.name
-              return `- ${voterName} voted for ${votedForName}: ${v.reasoning}`
-            })
-            .join('\n')}`
+          }
+
+---
+
+## Recommended Solution
+
+${winningSolution}
+
+---
+
+*Voting: ${result.votes.map((v) => {
+  const voterName = personas.find((p) => p.id === v.voterId)?.name
+  const votedForName = personas.find((p) => p.id === v.votedFor)?.name
+  return `${voterName} → ${votedForName}`
+}).join(' | ')}*`
         )
       }
     } catch (error) {

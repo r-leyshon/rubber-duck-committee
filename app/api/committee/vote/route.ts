@@ -5,9 +5,8 @@ import { vertex, DEFAULT_MODEL } from '@/lib/vertex'
 
 // Structured output schema for voting
 const voteSchema = z.object({
-  votedFor: z.enum(['analytical', 'creative', 'pragmatic']),
+  votedFor: z.enum(['analytical', 'creative', 'pragmatic']).describe('The ID of the duck whose solution you are voting for'),
   reasoning: z.string().describe('Explanation for why this solution was chosen'),
-  confidence: z.number().min(1).max(10).describe('Confidence level in this vote'),
 })
 
 export async function POST(req: Request) {

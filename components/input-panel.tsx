@@ -49,7 +49,7 @@ export function InputPanel({
   }
 
   return (
-    <div className="border-t border-border bg-card/80 backdrop-blur-sm p-4">
+    <div className="shrink-0 border-t border-border bg-card/80 backdrop-blur-sm p-4">
       <div className="max-w-3xl mx-auto">
         <div className="flex gap-3 items-end">
           <div className="flex-1 relative">

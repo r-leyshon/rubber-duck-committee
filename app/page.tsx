@@ -130,7 +130,7 @@ export default function RubberDuckCommittee() {
 
 function EmptyState() {
   return (
-    <div className="flex-1 flex items-center justify-center p-8">
+    <div className="flex-1 min-h-0 flex items-center justify-center p-8 overflow-auto">
       <div className="max-w-md text-center space-y-6">
         <div className="flex justify-center gap-4">
           <DuckAvatar color="duck-analytical" delay={0} />

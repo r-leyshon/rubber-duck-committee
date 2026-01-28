@@ -5,7 +5,6 @@ export async function POST(req: Request) {
   const {
     userMessage,
     duckResponses,
-    conversationHistory,
     phase,
   }: {
     userMessage: string
@@ -17,51 +16,56 @@ export async function POST(req: Request) {
       followUpQuestions?: string[]
       suggestedSolution?: string
     }>
-    conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }>
     phase: 'exploring' | 'proposing' | 'concluded'
   } = await req.json()
 
-  // Build context from duck responses
-  const duckSummaries = duckResponses
-    .map((r) => {
-      let summary = `**${r.duckName}** (${r.status}):\n${r.content}`
-      if (r.followUpQuestions && r.followUpQuestions.length > 0) {
-        summary += `\n\nFollow-up questions:\n${r.followUpQuestions.map((q) => `- ${q}`).join('\n')}`
-      }
-      if (r.suggestedSolution) {
-        summary += `\n\nSuggested solution: ${r.suggestedSolution}`
-      }
-      return summary
-    })
-    .join('\n\n---\n\n')
+  // Analyze the committee's state
+  const needsContext = duckResponses.filter((r) => r.status === 'needs-context')
+  const complete = duckResponses.filter((r) => r.status === 'complete')
+  const allHaveSolutions = duckResponses.every((r) => r.suggestedSolution)
 
-  const systemPrompt = `You are the Orchestrator Duck - the moderator of the rubber duck debugging committee. 
-Your role is to synthesize the insights from the committee members and communicate clearly with the user.
+  // Collect all follow-up questions from ducks that need context
+  const allQuestions = needsContext.flatMap((r) => r.followUpQuestions || [])
+  
+  // Build a concise context for the Chair
+  let situationContext = ''
+  if (needsContext.length > 0) {
+    situationContext = `${needsContext.length} of ${duckResponses.length} committee members need more context.
+    
+Their questions:
+${allQuestions.map((q, i) => `${i + 1}. ${q}`).join('\n')}
+`
+  } else if (allHaveSolutions) {
+    situationContext = `All committee members have proposed solutions. The committee is ready to vote.`
+  } else {
+    situationContext = `${complete.length} of ${duckResponses.length} committee members have completed their analysis.`
+  }
 
-Current phase: ${phase}
+  const systemPrompt = `You are Chair Duck - the moderator of the rubber duck debugging committee.
 
-The committee members have provided their analysis:
+Your role is BRIEF and FOCUSED. You do NOT summarize or repeat what the committee members said.
 
-${duckSummaries}
+## Your ONLY responsibilities:
 
-Your responsibilities:
-1. Summarize the key insights from each committee member
-2. Identify areas of agreement and disagreement
-3. If committee members have follow-up questions, consolidate and present them clearly to the user
-4. If the committee is ready to propose solutions, present the options
-5. Guide the conversation toward a resolution
+1. **If members need context**: Present the consolidated questions to the user in a clear, numbered list. Be brief - just say the committee needs more information and list the questions.
 
-Be concise but thorough. Maintain a friendly, professional tone.
-When presenting follow-up questions, group similar questions together and prioritize the most important ones.
-When there are proposed solutions, present them clearly with pros and cons.
+2. **If all members have solutions**: Simply state that the committee is ready to vote. Do not summarize the solutions.
 
-Do NOT make up information - only synthesize what the committee has provided.`
+3. **Never repeat or summarize** what individual committee members said - the user can see their responses directly.
+
+## Current Situation:
+${situationContext}
+
+## Response Format:
+- Keep it to 2-3 sentences maximum, plus any questions if needed
+- Be direct and professional
+- Do NOT say things like "Here's what the committee said..." or "Let me summarize..."
+- Just give the outcome and next step`
 
   const messages = [
-    ...conversationHistory,
     {
       role: 'user' as const,
-      content: `User message: "${userMessage}"\n\nPlease synthesize the committee's responses and guide the next step of the conversation.`,
+      content: `The user asked: "${userMessage}"\n\nProvide a brief status update.`,
     },
   ]
 
