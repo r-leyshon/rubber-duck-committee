@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button'
 import { useCommittee } from '@/hooks/use-committee'
 import { DEFAULT_PERSONAS } from '@/lib/types'
 import type { DuckPersona } from '@/lib/types'
-import { PanelLeft, Bird } from 'lucide-react'
+import { PanelLeft } from 'lucide-react'
+import { DuckIcon } from '@/components/duck-icon'
 import { cn } from '@/lib/utils'
 
 export default function RubberDuckCommittee() {
@@ -41,7 +42,7 @@ export default function RubberDuckCommittee() {
           </Button>
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-full bg-orchestrator flex items-center justify-center">
-              <Bird className="h-5 w-5 text-background" />
+              <DuckIcon className="h-5 w-5 text-background" />
             </div>
             <div>
               <h1 className="font-semibold text-foreground text-sm">
@@ -160,7 +161,7 @@ function DuckAvatar({ color, delay }: { color: string; delay: number }) {
         animationDuration: '2s',
       }}
     >
-      <Bird className="h-8 w-8 text-background" />
+      <DuckIcon className="h-8 w-8 text-background" />
     </div>
   )
 }
