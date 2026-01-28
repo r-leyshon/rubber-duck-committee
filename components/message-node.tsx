@@ -48,7 +48,7 @@ function ChainOfThoughtPanel({ thoughts }: { thoughts: ChainOfThought[] }) {
   if (!thoughts || thoughts.length === 0) return null
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="mt-3">
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="mb-3">
       <CollapsibleTrigger className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
         <ChevronDown
           className={cn(
@@ -59,16 +59,18 @@ function ChainOfThoughtPanel({ thoughts }: { thoughts: ChainOfThought[] }) {
         <span className="font-mono">Chain of Thought ({thoughts.length} steps)</span>
       </CollapsibleTrigger>
       <CollapsibleContent className="mt-2 space-y-2">
-        {thoughts.map((step) => (
+        {thoughts.map((step, index) => (
           <div
-            key={step.step}
+            key={`step-${index}-${step.step}`}
             className="pl-4 border-l-2 border-node-line text-xs space-y-1"
           >
             <div className="font-medium text-muted-foreground">
               Step {step.step}
             </div>
             <div className="text-foreground/80">{step.thought}</div>
-            <div className="text-muted-foreground italic">{step.reasoning}</div>
+            {step.reasoning && (
+              <div className="text-muted-foreground italic">{step.reasoning}</div>
+            )}
           </div>
         ))}
       </CollapsibleContent>
@@ -187,6 +189,11 @@ export function MessageNode({
           </div>
         </div>
 
+        {/* Chain of thought expandable - appears above content */}
+        {message.chainOfThought && message.chainOfThought.length > 0 && (
+          <ChainOfThoughtPanel thoughts={message.chainOfThought} />
+        )}
+
         {/* Content */}
         <div className="text-sm text-foreground/90 prose prose-sm prose-invert max-w-none prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-headings:text-foreground prose-strong:text-foreground">
           {message.content ? (
@@ -206,11 +213,6 @@ export function MessageNode({
               <ReactMarkdown>{message.suggestedSolution}</ReactMarkdown>
             </div>
           </div>
-        )}
-
-        {/* Chain of thought expandable */}
-        {message.chainOfThought && message.chainOfThought.length > 0 && (
-          <ChainOfThoughtPanel thoughts={message.chainOfThought} />
         )}
       </div>
 

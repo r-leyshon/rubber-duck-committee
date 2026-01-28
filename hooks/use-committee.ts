@@ -111,11 +111,19 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
           if (!response.ok) throw new Error('Duck API error')
           if (!response.body) throw new Error('No response body')
 
-          // Parse SSE stream
+          // Parse SSE stream of partial objects
           const reader = response.body.getReader()
           const decoder = new TextDecoder()
           let buffer = ''
-          let fullContent = ''
+          
+          // Track the latest partial object
+          let latestObject: {
+            status?: 'complete' | 'needs-context'
+            thinking?: Array<{ step: number; thought: string }>
+            analysis?: string
+            followUpQuestions?: string[]
+            suggestedSolution?: string
+          } = {}
 
           while (true) {
             const { done, value } = await reader.read()
@@ -131,26 +139,50 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
                 const data = trimmed.slice(5).trim()
                 if (data === '[DONE]') continue
                 try {
-                  const chunk = JSON.parse(data)
-                  // Handle text streaming
-                  if (chunk.type === 'text-delta' && chunk.delta) {
-                    fullContent += chunk.delta
-                    // Update message in real-time
-                    setState((prev) => ({
-                      ...prev,
-                      messages: prev.messages.map((m) =>
-                        m.id === thinkingMessage.id
-                          ? { ...m, content: fullContent }
-                          : m
-                      ),
-                    }))
-                  }
+                  // Parse the partial object
+                  const partialObject = JSON.parse(data)
+                  latestObject = partialObject
+                  
+                  // Update message in real-time with the analysis content
+                  const content = partialObject.analysis || ''
+                  const chainOfThought = (partialObject.thinking || []).map(
+                    (t: { step: number; thought: string }) => ({
+                      step: t.step,
+                      thought: t.thought,
+                      reasoning: '', // We simplified the schema
+                    })
+                  )
+                  
+                  setState((prev) => ({
+                    ...prev,
+                    messages: prev.messages.map((m) =>
+                      m.id === thinkingMessage.id
+                        ? { 
+                            ...m, 
+                            content,
+                            chainOfThought,
+                            status: 'thinking',
+                          }
+                        : m
+                    ),
+                  }))
                 } catch {
                   // Skip invalid JSON
                 }
               }
             }
           }
+
+          // Determine final status
+          const finalStatus = latestObject.status || 'complete'
+          const finalContent = latestObject.analysis || ''
+          const chainOfThought = (latestObject.thinking || []).map(
+            (t: { step: number; thought: string }) => ({
+              step: t.step,
+              thought: t.thought,
+              reasoning: '',
+            })
+          )
 
           // Update the message with final content
           setState((prev) => ({
@@ -159,8 +191,10 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
               m.id === thinkingMessage.id
                 ? {
                     ...m,
-                    content: fullContent,
-                    status: 'complete',
+                    content: finalContent,
+                    chainOfThought,
+                    status: finalStatus,
+                    suggestedSolution: latestObject.suggestedSolution,
                   }
                 : m
             ),
@@ -168,9 +202,11 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
 
           const duckResponse: DuckResponse = {
             duckId: persona.id,
-            content: fullContent,
-            chainOfThought: [],
-            status: 'complete',
+            content: finalContent,
+            chainOfThought,
+            status: finalStatus,
+            followUpQuestions: latestObject.followUpQuestions,
+            suggestedSolution: latestObject.suggestedSolution,
           }
 
           setState((prev) => {
@@ -179,7 +215,7 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
             return { ...prev, duckResponses: newResponses }
           })
 
-          updateDuckStatus(persona.id, status)
+          updateDuckStatus(persona.id, finalStatus)
 
           return duckResponse
         } catch (error) {
