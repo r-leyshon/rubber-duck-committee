@@ -172,11 +172,9 @@ function EmptyState() {
 function DuckAvatar({ color, delay }: { color: string; delay: number }) {
   return (
     <div
-      className={cn(
-        'h-16 w-16 rounded-full flex items-center justify-center animate-bounce overflow-hidden',
-        `bg-${color}`
-      )}
+      className="h-16 w-16 rounded-full flex items-center justify-center animate-bounce overflow-hidden"
       style={{
+        backgroundColor: `var(--${color})`,
         animationDelay: `${delay}ms`,
         animationDuration: '2s',
       }}
