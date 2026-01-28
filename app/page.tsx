@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { useCommittee } from '@/hooks/use-committee'
 import { DEFAULT_PERSONAS } from '@/lib/types'
 import type { DuckPersona } from '@/lib/types'
-import { PanelLeft } from 'lucide-react'
+import { Users, ChevronRight } from 'lucide-react'
 import { DuckIcon } from '@/components/duck-icon'
 import { cn } from '@/lib/utils'
 
@@ -33,12 +33,17 @@ export default function RubberDuckCommittee() {
       <header className="flex items-center justify-between px-4 h-14 border-b border-border bg-card/50 backdrop-blur-sm">
         <div className="flex items-center gap-3">
           <Button
-            variant="ghost"
-            size="icon"
+            variant={isPanelOpen ? "secondary" : "outline"}
+            size="sm"
             onClick={() => setIsPanelOpen(!isPanelOpen)}
-            className={cn(isPanelOpen && 'bg-secondary')}
+            className="gap-1.5"
           >
-            <PanelLeft className="h-5 w-5" />
+            <Users className="h-4 w-4" />
+            <span className="hidden sm:inline">Personas</span>
+            <ChevronRight className={cn(
+              "h-3.5 w-3.5 transition-transform",
+              isPanelOpen && "rotate-180"
+            )} />
           </Button>
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-full bg-orchestrator flex items-center justify-center">

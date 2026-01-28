@@ -11,7 +11,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { ChevronDown, Search, Settings2 } from 'lucide-react'
+import { ChevronDown, Search, Pencil, Palette } from 'lucide-react'
 import type { DuckPersona, DuckMode } from '@/lib/types'
 import { DUCK_MODES } from '@/lib/types'
 
@@ -32,9 +32,70 @@ const PERSONA_ACCENT: Record<string, string> = {
   'duck-pragmatic': 'bg-duck-pragmatic',
 }
 
+const COLOR_OPTIONS = [
+  { id: 'duck-analytical', label: 'Cyan', class: 'bg-duck-analytical' },
+  { id: 'duck-creative', label: 'Orange', class: 'bg-duck-creative' },
+  { id: 'duck-pragmatic', label: 'Green', class: 'bg-duck-pragmatic' },
+]
+
+// Extract key traits from system prompt for preview
+function PersonaTraitsPreview({ systemPrompt }: { systemPrompt: string }) {
+  const extractField = (field: string): string | null => {
+    const regex = new RegExp(`\\*\\*${field}\\*\\*:\\s*(.+?)(?:\\n|$)`, 'i')
+    const match = systemPrompt.match(regex)
+    return match ? match[1].trim() : null
+  }
+
+  const extractQuote = (): string | null => {
+    const regex = /## Debugging Philosophy\s*\n+"?([^"]+)"?/i
+    const match = systemPrompt.match(regex)
+    return match ? match[1].trim().replace(/^"|"$/g, '') : null
+  }
+
+  const occupation = extractField('Occupation')
+  const personality = extractField('Personality type')
+  const philosophy = extractQuote()
+
+  if (!occupation && !personality && !philosophy) {
+    return null
+  }
+
+  return (
+    <div className="text-xs space-y-1.5 text-muted-foreground bg-background/20 rounded-md p-2">
+      {occupation && (
+        <div className="flex gap-2">
+          <span className="text-foreground/60 shrink-0">💼</span>
+          <span>{occupation}</span>
+        </div>
+      )}
+      {personality && (
+        <div className="flex gap-2">
+          <span className="text-foreground/60 shrink-0">🧠</span>
+          <span>{personality}</span>
+        </div>
+      )}
+      {philosophy && (
+        <div className="flex gap-2 italic">
+          <span className="text-foreground/60 shrink-0">💬</span>
+          <span className="line-clamp-2">&ldquo;{philosophy}&rdquo;</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function PersonaConfig({ persona, onUpdate }: PersonaConfigProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [editedName, setEditedName] = useState(persona.name)
+  const [editedDescription, setEditedDescription] = useState(persona.description)
   const [editedPrompt, setEditedPrompt] = useState(persona.systemPrompt)
+  const [editedColor, setEditedColor] = useState(persona.color)
+
+  const hasChanges = 
+    editedName !== persona.name ||
+    editedDescription !== persona.description ||
+    editedPrompt !== persona.systemPrompt ||
+    editedColor !== persona.color
 
   const toggleMode = (mode: DuckMode) => {
     const newModes = persona.enabledModes.includes(mode)
@@ -47,49 +108,123 @@ export function PersonaConfig({ persona, onUpdate }: PersonaConfigProps) {
     onUpdate({ ...persona, hasWebSearch: !persona.hasWebSearch })
   }
 
-  const savePrompt = () => {
-    onUpdate({ ...persona, systemPrompt: editedPrompt })
+  const saveChanges = () => {
+    onUpdate({ 
+      ...persona, 
+      name: editedName,
+      description: editedDescription,
+      systemPrompt: editedPrompt,
+      color: editedColor,
+    })
+  }
+
+  const resetChanges = () => {
+    setEditedName(persona.name)
+    setEditedDescription(persona.description)
+    setEditedPrompt(persona.systemPrompt)
+    setEditedColor(persona.color)
   }
 
   return (
-    <div
-      className={cn(
-        'rounded-lg border p-4 transition-all duration-200',
-        PERSONA_COLORS[persona.color]
-      )}
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div
-            className={cn(
-              'h-10 w-10 rounded-full flex items-center justify-center text-background font-bold text-lg',
-              PERSONA_ACCENT[persona.color]
-            )}
-          >
-            {persona.name.charAt(0)}
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <div
+        className={cn(
+          'rounded-lg border p-4 transition-all duration-200',
+          PERSONA_COLORS[isOpen ? editedColor : persona.color]
+        )}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div
+              className={cn(
+                'h-10 w-10 rounded-full flex items-center justify-center text-background font-bold text-lg shrink-0',
+                PERSONA_ACCENT[isOpen ? editedColor : persona.color]
+              )}
+            >
+              {(isOpen ? editedName : persona.name).charAt(0)}
+            </div>
+            <div className="min-w-0">
+              <h3 className="font-semibold text-foreground truncate">
+                {isOpen ? editedName : persona.name}
+              </h3>
+              <p className="text-xs text-muted-foreground line-clamp-2">
+                {isOpen ? editedDescription : persona.description}
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-semibold text-foreground">{persona.name}</h3>
-            <p className="text-xs text-muted-foreground">{persona.description}</p>
-          </div>
-        </div>
-        <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="gap-1">
-              <Settings2 className="h-4 w-4" />
+            <Button 
+              variant={isOpen ? "secondary" : "outline"} 
+              size="sm" 
+              className={cn(
+                "gap-1.5 shrink-0",
+                !isOpen && "hover:bg-secondary"
+              )}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              <span className="text-xs">{isOpen ? 'Editing' : 'Edit'}</span>
               <ChevronDown
                 className={cn(
-                  'h-4 w-4 transition-transform',
+                  'h-3.5 w-3.5 transition-transform',
                   isOpen && 'rotate-180'
                 )}
               />
             </Button>
           </CollapsibleTrigger>
-        </Collapsible>
-      </div>
+        </div>
 
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleContent className="mt-4 space-y-4">
+          {/* Name */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              Name
+            </label>
+            <input
+              type="text"
+              value={editedName}
+              onChange={(e) => setEditedName(e.target.value)}
+              className="w-full px-3 py-2 text-sm rounded-md border border-border bg-background/50 focus:outline-none focus:ring-2 focus:ring-ring"
+              placeholder="Duck name..."
+            />
+          </div>
+
+          {/* Description */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">
+              Description
+            </label>
+            <Textarea
+              value={editedDescription}
+              onChange={(e) => setEditedDescription(e.target.value)}
+              className="min-h-[60px] text-sm bg-background/50"
+              placeholder="Brief description..."
+            />
+          </div>
+
+          {/* Color Selection */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground flex items-center gap-2">
+              <Palette className="h-4 w-4" />
+              Color
+            </label>
+            <div className="flex gap-2">
+              {COLOR_OPTIONS.map((color) => (
+                <button
+                  key={color.id}
+                  onClick={() => setEditedColor(color.id)}
+                  className={cn(
+                    'h-8 w-8 rounded-full transition-all',
+                    color.class,
+                    editedColor === color.id 
+                      ? 'ring-2 ring-offset-2 ring-offset-background ring-foreground scale-110' 
+                      : 'opacity-60 hover:opacity-100'
+                  )}
+                  title={color.label}
+                />
+              ))}
+            </div>
+          </div>
+
           {/* Modes Selection */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
@@ -107,7 +242,7 @@ export function PersonaConfig({ persona, onUpdate }: PersonaConfigProps) {
                   className={cn(
                     'cursor-pointer transition-all',
                     persona.enabledModes.includes(mode.id)
-                      ? PERSONA_ACCENT[persona.color]
+                      ? PERSONA_ACCENT[editedColor]
                       : 'hover:bg-secondary'
                   )}
                   onClick={() => toggleMode(mode.id)}
@@ -143,50 +278,57 @@ export function PersonaConfig({ persona, onUpdate }: PersonaConfigProps) {
               className="min-h-[200px] font-mono text-xs bg-background/50"
               placeholder="Enter system prompt..."
             />
-            {editedPrompt !== persona.systemPrompt && (
-              <div className="flex gap-2">
-                <Button size="sm" onClick={savePrompt}>
-                  Save Changes
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setEditedPrompt(persona.systemPrompt)}
-                >
-                  Reset
-                </Button>
-              </div>
-            )}
           </div>
-        </CollapsibleContent>
-      </Collapsible>
 
-      {/* Active modes preview */}
-      {!isOpen && (
-        <div className="mt-3 flex flex-wrap gap-1">
-          {persona.enabledModes.slice(0, 3).map((mode) => (
-            <Badge
-              key={mode}
-              variant="secondary"
-              className="text-xs bg-background/30"
-            >
-              {DUCK_MODES.find((m) => m.id === mode)?.label}
-            </Badge>
-          ))}
-          {persona.enabledModes.length > 3 && (
-            <Badge variant="secondary" className="text-xs bg-background/30">
-              +{persona.enabledModes.length - 3}
-            </Badge>
+          {/* Save/Reset buttons */}
+          {hasChanges && (
+            <div className="flex gap-2 pt-2 border-t border-border/50">
+              <Button size="sm" onClick={saveChanges} className="flex-1">
+                Save Changes
+              </Button>
+              <Button size="sm" variant="ghost" onClick={resetChanges}>
+                Reset
+              </Button>
+            </div>
           )}
-          {persona.hasWebSearch && (
-            <Badge variant="secondary" className="text-xs bg-background/30">
-              <Search className="h-3 w-3 mr-1" />
-              Web
-            </Badge>
-          )}
-        </div>
-      )}
-    </div>
+        </CollapsibleContent>
+
+        {/* Persona preview - always visible when collapsed */}
+        {!isOpen && (
+          <div className="mt-3 space-y-2">
+            <PersonaTraitsPreview systemPrompt={persona.systemPrompt} />
+            
+            <div className="flex flex-wrap gap-1">
+              {persona.enabledModes.slice(0, 3).map((mode) => (
+                <Badge
+                  key={mode}
+                  variant="secondary"
+                  className="text-xs bg-background/30"
+                >
+                  {DUCK_MODES.find((m) => m.id === mode)?.label}
+                </Badge>
+              ))}
+              {persona.enabledModes.length > 3 && (
+                <Badge variant="secondary" className="text-xs bg-background/30">
+                  +{persona.enabledModes.length - 3}
+                </Badge>
+              )}
+              {persona.hasWebSearch && (
+                <Badge variant="secondary" className="text-xs bg-background/30">
+                  <Search className="h-3 w-3 mr-1" />
+                  Web
+                </Badge>
+              )}
+            </div>
+
+            {/* Hint to edit */}
+            <p className="text-[10px] text-muted-foreground/60 text-center pt-1">
+              Click &ldquo;Edit&rdquo; to customize this persona
+            </p>
+          </div>
+        )}
+      </div>
+    </Collapsible>
   )
 }
 
@@ -225,9 +367,12 @@ export function PersonaPanel({
             <ChevronDown className="h-4 w-4 rotate-90" />
           </Button>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Configure your rubber duck personas for debugging sessions.
-        </p>
+        <div className="bg-secondary/50 rounded-md p-3 text-sm text-muted-foreground">
+          <p className="flex items-center gap-2">
+            <Pencil className="h-4 w-4 shrink-0" />
+            <span>Click <strong>&ldquo;Edit&rdquo;</strong> on any persona to customize their name, color, description, and personality.</span>
+          </p>
+        </div>
         <div className="space-y-3">
           {personas.map((persona) => (
             <PersonaConfig
