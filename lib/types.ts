@@ -183,6 +183,12 @@ export interface ChainOfThought {
   step: number
   thought: string
   reasoning: string
+  isWebSearch?: boolean // Indicates if this step involved web search
+}
+
+export interface GroundingInfo {
+  webSearchQueries: string[]
+  wasGrounded: boolean
 }
 
 export interface QuestionWithOptions {
@@ -202,6 +208,7 @@ export interface CommitteeMessage {
   questionsWithOptions?: QuestionWithOptions[]
   vote?: DuckPersonaId
   votingResult?: VotingResult  // Attached to event messages when voting completes
+  groundingInfo?: GroundingInfo // Web search grounding info
 }
 
 export interface DuckResponse {
@@ -211,6 +218,7 @@ export interface DuckResponse {
   status: 'thinking' | 'complete' | 'needs-context'
   followUpQuestions?: string[]
   suggestedSolution?: string
+  groundingInfo?: GroundingInfo
 }
 
 export interface Vote {

@@ -1,7 +1,10 @@
-import { streamObject } from 'ai'
+import { streamObject, generateText } from 'ai'
 import { z } from 'zod'
 import type { DuckPersona } from '@/lib/types'
 import { vertex, DEFAULT_MODEL } from '@/lib/vertex'
+
+// Fast model for grounding step (cheaper, just needs to search)
+const GROUNDING_MODEL = 'gemini-2.0-flash-001'
 
 // Common fields shared between both status types
 const thinkingSchema = z.array(z.object({
@@ -39,6 +42,18 @@ const duckResponseSchema = z.discriminatedUnion('status', [
 
 export type DuckResponseType = z.infer<typeof duckResponseSchema>
 
+// Type for grounding metadata from Google
+interface GroundingMetadata {
+  webSearchQueries?: string[]
+  searchEntryPoint?: { renderedContent: string }
+  groundingSupports?: Array<{
+    segment: { startIndex: number; endIndex: number; text: string }
+    groundingChunkIndices: number[]
+    confidenceScores: number[]
+  }>
+  retrievalMetadata?: { webDynamicRetrievalScore: number }
+}
+
 export async function POST(req: Request) {
   const { 
     persona, 
@@ -75,15 +90,70 @@ export async function POST(req: Request) {
     .filter(Boolean)
     .join('\n')
 
+  // Track grounding results
+  let groundingContext = ''
+  let webSearchQueries: string[] = []
+  let wasGrounded = false
+
+  // STEP 1: If web search is enabled, first do a grounding call (text generation, no schema)
+  if (persona.hasWebSearch) {
+    try {
+      const groundingPrompt = `You are a research assistant. The user has asked: "${userMessage}"
+
+Search for current, relevant information to help answer this question. Provide a concise summary of what you find, including any relevant facts, documentation references, or current best practices. Focus on accuracy and recency.`
+
+      const groundingResult = await generateText({
+        model: vertex(GROUNDING_MODEL),
+        prompt: groundingPrompt,
+        providerOptions: {
+          vertex: {
+            googleSearchRetrieval: {
+              dynamicRetrievalConfig: {
+                mode: 'MODE_DYNAMIC',
+                dynamicThreshold: 0.1,
+              },
+            },
+          },
+        },
+      })
+
+      // Extract grounding metadata (cast to access experimental property)
+      const providerMeta = (groundingResult as unknown as { 
+        experimental_providerMetadata?: { google?: { groundingMetadata?: GroundingMetadata } }
+      }).experimental_providerMetadata
+
+      if (providerMeta?.google?.groundingMetadata) {
+        const meta = providerMeta.google.groundingMetadata
+        webSearchQueries = meta.webSearchQueries || []
+      }
+
+      // Use the grounded text as context for the structured response
+      if (groundingResult.text && groundingResult.text.length > 0) {
+        groundingContext = `\n\n## Web Search Results\nThe following information was found via web search:\n${groundingResult.text}`
+        wasGrounded = true
+      }
+    } catch (error) {
+      console.error(`[Web Search] Error for ${persona.name}:`, error)
+      // Continue without grounding if it fails
+    }
+  }
+
+  // Build system prompt with grounding context if available
+  const webSearchNote = wasGrounded 
+    ? `\n\n## Web Search\nYou performed a web search. Include "Web search performed" as one of your thinking steps and reference the search results in your analysis.`
+    : ''
+
   const systemPrompt = `${persona.systemPrompt}
 
 Your enabled modes for this session:
 ${modeInstructions}
+${webSearchNote}
 
 IMPORTANT: You are part of a rubber duck debugging committee. You work INDEPENDENTLY.
 Your job is to help the user debug their problem through your unique perspective.
 
 ${orchestratorContext ? `Context from the orchestrator: ${orchestratorContext}` : ''}
+${groundingContext}
 
 ## Response Guidelines
 
@@ -105,7 +175,7 @@ ${orchestratorContext ? `Context from the orchestrator: ${orchestratorContext}` 
 Choose "needs-context" when the problem is vague or missing key details.
 Choose "complete" when you can provide a concrete, actionable solution.`
 
-  // conversationHistory already includes the current user message
+  // STEP 2: Generate structured response (with grounding context if available)
   const messages = conversationHistory
 
   const result = streamObject({
@@ -124,6 +194,18 @@ Choose "complete" when you can provide a concrete, actionable solution.`
           const data = JSON.stringify(partialObject)
           controller.enqueue(encoder.encode(`data: ${data}\n\n`))
         }
+        
+        // Send grounding metadata from Step 1 if we have it
+        if (wasGrounded) {
+          const groundingData = JSON.stringify({
+            _groundingMetadata: {
+              webSearchQueries,
+              wasGrounded: true,
+            }
+          })
+          controller.enqueue(encoder.encode(`data: ${groundingData}\n\n`))
+        }
+        
         controller.enqueue(encoder.encode('data: [DONE]\n\n'))
         controller.close()
       } catch (error) {

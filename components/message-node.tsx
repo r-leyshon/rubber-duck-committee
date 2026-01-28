@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
-import { ChevronDown, Loader2, CheckCircle2, HelpCircle, MessageSquare, Send } from 'lucide-react'
+import { ChevronDown, Loader2, CheckCircle2, HelpCircle, MessageSquare, Send, Search } from 'lucide-react'
 import {
   Collapsible,
   CollapsibleContent,
@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import ReactMarkdown from 'react-markdown'
-import type { CommitteeMessage, ChainOfThought, DuckPersonaId, QuestionWithOptions } from '@/lib/types'
+import type { CommitteeMessage, ChainOfThought, DuckPersonaId, QuestionWithOptions, GroundingInfo } from '@/lib/types'
 
 interface MessageNodeProps {
   message: CommitteeMessage
@@ -44,10 +44,19 @@ const STATUS_ICONS = {
   waiting: <Loader2 className="h-4 w-4 animate-pulse text-muted-foreground" />,
 }
 
-function ChainOfThoughtPanel({ thoughts }: { thoughts: ChainOfThought[] }) {
+function ChainOfThoughtPanel({ 
+  thoughts, 
+  groundingInfo 
+}: { 
+  thoughts: ChainOfThought[]
+  groundingInfo?: GroundingInfo 
+}) {
   const [isOpen, setIsOpen] = useState(false)
 
-  if (!thoughts || thoughts.length === 0) return null
+  if ((!thoughts || thoughts.length === 0) && !groundingInfo?.wasGrounded) return null
+
+  // Show web search badge if grounding was used (queries may be empty if metadata wasn't exposed)
+  const hasWebSearch = groundingInfo?.wasGrounded === true
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="mb-3">
@@ -58,9 +67,39 @@ function ChainOfThoughtPanel({ thoughts }: { thoughts: ChainOfThought[] }) {
             isOpen && 'rotate-180'
           )}
         />
-        <span className="font-mono">Chain of Thought ({thoughts.length} steps)</span>
+        <span className="font-mono">
+          Chain of Thought ({thoughts.length} steps)
+          {hasWebSearch && (
+            <span className="ml-2 inline-flex items-center gap-1 text-blue-400">
+              <Search className="h-3 w-3" />
+              Web Search
+            </span>
+          )}
+        </span>
       </CollapsibleTrigger>
       <CollapsibleContent className="mt-2 space-y-2">
+        {/* Show web search indicator if grounding was used */}
+        {hasWebSearch && (
+          <div className="pl-4 border-l-2 border-blue-500/50 text-xs space-y-1 bg-blue-500/5 rounded-r-md py-2 pr-2">
+            <div className="font-medium text-blue-400 flex items-center gap-1">
+              <Search className="h-3 w-3" />
+              Web Search Used
+            </div>
+            {groundingInfo && groundingInfo.webSearchQueries.length > 0 ? (
+              <ul className="text-foreground/80 space-y-1">
+                {groundingInfo.webSearchQueries.map((query, idx) => (
+                  <li key={idx} className="flex items-start gap-1">
+                    <span className="text-muted-foreground">•</span>
+                    <span className="italic">&ldquo;{query}&rdquo;</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-foreground/60">Real-time web content was used to inform this response.</p>
+            )}
+          </div>
+        )}
+        
         {thoughts.map((step, index) => (
           <div
             key={`step-${index}-${step.step}`}
@@ -316,7 +355,7 @@ export function MessageNode({
 
         {/* Chain of thought expandable - appears above content */}
         {message.chainOfThought && message.chainOfThought.length > 0 && (
-          <ChainOfThoughtPanel thoughts={message.chainOfThought} />
+          <ChainOfThoughtPanel thoughts={message.chainOfThought} groundingInfo={message.groundingInfo} />
         )}
 
         {/* Content - collapsible for duck messages */}

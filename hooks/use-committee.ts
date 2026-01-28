@@ -8,6 +8,7 @@ import type {
   DuckResponse,
   VotingResult,
   ParticipantId,
+  GroundingInfo,
 } from '@/lib/types'
 
 interface UseCommitteeOptions {
@@ -145,6 +146,58 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
             followUpQuestions?: string[]
             suggestedSolution?: string
           } = {}
+          
+          // Track grounding metadata
+          let groundingInfo: GroundingInfo | undefined = undefined
+
+          // Helper function to process SSE lines
+          const processLine = (line: string) => {
+            const trimmed = line.trim()
+            if (trimmed.startsWith('data:')) {
+              const data = trimmed.slice(5).trim()
+              if (data === '[DONE]') return
+              try {
+                const partialObject = JSON.parse(data)
+                
+                // Check if this is grounding metadata
+                if (partialObject._groundingMetadata) {
+                  groundingInfo = {
+                    webSearchQueries: partialObject._groundingMetadata.webSearchQueries || [],
+                    wasGrounded: partialObject._groundingMetadata.wasGrounded || false,
+                  }
+                  return
+                }
+                
+                latestObject = partialObject
+                
+                // Update message in real-time with the analysis content
+                const content = partialObject.analysis || ''
+                const chainOfThought = (partialObject.thinking || []).map(
+                  (t: { step: number; thought: string }) => ({
+                    step: t.step,
+                    thought: t.thought,
+                    reasoning: '',
+                  })
+                )
+                
+                setState((prev) => ({
+                  ...prev,
+                  messages: prev.messages.map((m) =>
+                    m.id === thinkingMessage.id
+                      ? { 
+                          ...m, 
+                          content,
+                          chainOfThought,
+                          status: 'thinking',
+                        }
+                      : m
+                  ),
+                }))
+              } catch {
+                // Skip invalid JSON
+              }
+            }
+          }
 
           while (true) {
             const { done, value } = await reader.read()
@@ -155,43 +208,13 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
             buffer = lines.pop() || ''
 
             for (const line of lines) {
-              const trimmed = line.trim()
-              if (trimmed.startsWith('data:')) {
-                const data = trimmed.slice(5).trim()
-                if (data === '[DONE]') continue
-                try {
-                  // Parse the partial object
-                  const partialObject = JSON.parse(data)
-                  latestObject = partialObject
-                  
-                  // Update message in real-time with the analysis content
-                  const content = partialObject.analysis || ''
-                  const chainOfThought = (partialObject.thinking || []).map(
-                    (t: { step: number; thought: string }) => ({
-                      step: t.step,
-                      thought: t.thought,
-                      reasoning: '', // We simplified the schema
-                    })
-                  )
-                  
-                  setState((prev) => ({
-                    ...prev,
-                    messages: prev.messages.map((m) =>
-                      m.id === thinkingMessage.id
-                        ? { 
-                            ...m, 
-                            content,
-                            chainOfThought,
-                            status: 'thinking',
-                          }
-                        : m
-                    ),
-                  }))
-                } catch {
-                  // Skip invalid JSON
-                }
-              }
+              processLine(line)
             }
+          }
+          
+          // Process any remaining data in buffer after stream ends
+          if (buffer.trim()) {
+            processLine(buffer)
           }
 
           // Determine final status
@@ -205,7 +228,7 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
             })
           )
 
-          // Update the message with final content
+          // Update the message with final content and grounding info
           setState((prev) => ({
             ...prev,
             messages: prev.messages.map((m) =>
@@ -216,6 +239,7 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
                     chainOfThought,
                     status: finalStatus,
                     suggestedSolution: latestObject.suggestedSolution,
+                    groundingInfo,
                   }
                 : m
             ),
@@ -228,6 +252,7 @@ export function useCommittee({ personas }: UseCommitteeOptions) {
             status: finalStatus,
             followUpQuestions: latestObject.followUpQuestions,
             suggestedSolution: latestObject.suggestedSolution,
+            groundingInfo,
           }
 
           setState((prev) => {
