@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { useCommittee } from '@/hooks/use-committee'
 import { DEFAULT_PERSONAS } from '@/lib/types'
 import type { DuckPersona } from '@/lib/types'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Github } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export default function RubberDuckCommittee() {
@@ -72,12 +72,21 @@ export default function RubberDuckCommittee() {
           </div>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="px-2 py-1 rounded bg-secondary">
+          <span className="px-2 py-1 rounded bg-secondary hidden sm:inline">
             {personas.length} ducks
           </span>
-          <span className="px-2 py-1 rounded bg-secondary">
+          <span className="px-2 py-1 rounded bg-secondary hidden sm:inline">
             Vertex AI
           </span>
+          <a
+            href="https://github.com/r-leyshon/rubber-duck-committee"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 rounded-md hover:bg-secondary transition-colors"
+            title="View on GitHub"
+          >
+            <Github className="h-5 w-5" />
+          </a>
         </div>
       </header>
 
