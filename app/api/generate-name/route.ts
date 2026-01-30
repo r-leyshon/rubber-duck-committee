@@ -33,7 +33,6 @@ The name should:
 ${context}
 
 Respond with ONLY the name, nothing else. No quotes, no explanation, just the name.`,
-      maxTokens: 50,
     })
 
     const name = text.trim().replace(/^["']|["']$/g, '')

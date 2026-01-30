@@ -37,6 +37,19 @@ const SPECIAL_COLORS: Record<string, { border: string; bg: string; accent: strin
   },
 }
 
+// Participant colors for duck stream headers
+const PARTICIPANT_COLORS: Record<DuckPersonaId, string> = {
+  analytical: 'border-duck-analytical bg-duck-analytical/10 text-duck-analytical',
+  creative: 'border-duck-creative bg-duck-creative/10 text-duck-creative',
+  pragmatic: 'border-duck-pragmatic bg-duck-pragmatic/10 text-duck-pragmatic',
+}
+
+const PARTICIPANT_ACCENT: Record<DuckPersonaId, string> = {
+  analytical: 'bg-duck-analytical',
+  creative: 'bg-duck-creative',
+  pragmatic: 'bg-duck-pragmatic',
+}
+
 const STATUS_ICONS = {
   thinking: <Loader2 className="h-4 w-4 animate-spin text-status-thinking" />,
   complete: <CheckCircle2 className="h-4 w-4 text-status-complete" />,
