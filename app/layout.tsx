@@ -12,21 +12,8 @@ export const metadata: Metadata = {
   description: 'A committee of AI rubber ducks to help you debug your code through multiple perspectives, chain of thought reasoning, and democratic voting.',
   generator: 'v0.app',
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+    icon: '/icons/duck-icon-32.png',
+    apple: '/icons/duck-icon-128.png',
   },
 }
 
