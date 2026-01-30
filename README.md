@@ -13,6 +13,70 @@ A collaborative AI debugging assistant powered by Google Vertex AI and Gemini. T
 - **Voting System**: Committee votes on the best solution when multiple are proposed
 - **Chain of Thought**: See the reasoning process of each AI persona
 
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph Browser["🌐 Browser"]
+        IP[InputPanel]
+        VI[VoiceInput]
+        CV[CommitteeView]
+        PP[PersonaPanel]
+        UC[useCommittee Hook]
+        
+        IP --> UC
+        VI --> UC
+        UC --> CV
+        PP -.->|config| UC
+    end
+    
+    subgraph API["⚡ Next.js API Routes"]
+        Duck["/api/committee/duck<br/>Individual persona responses"]
+        Orch["/api/committee/orchestrate<br/>Chair Duck synthesis"]
+        Vote["/api/committee/vote<br/>Voting & tallying"]
+        Trans["/api/transcribe<br/>Audio → Text"]
+        Vertex["lib/vertex.ts<br/>Vertex AI Client"]
+        
+        Duck --> Vertex
+        Orch --> Vertex
+        Vote --> Vertex
+        Trans --> Vertex
+    end
+    
+    subgraph GCP["☁️ Google Cloud Vertex AI"]
+        Gemini["Gemini 2.0 Flash<br/>• Structured JSON<br/>• Streaming<br/>• Web Search<br/>• Audio Transcription"]
+    end
+    
+    UC <-->|SSE Streams| Duck
+    UC <-->|SSE Streams| Orch
+    UC <-->|SSE Streams| Vote
+    VI -->|Audio| Trans
+    
+    Vertex <-->|HTTPS| Gemini
+```
+
+### Flow Overview
+
+1. **User Input** → User submits a problem via text or voice
+2. **Parallel Processing** → All duck personas receive the problem simultaneously
+3. **Structured Responses** → Each duck returns a Zod-validated response with:
+   - Chain of thought reasoning
+   - Status (needs context / complete)
+   - Suggested solution (when ready)
+4. **Orchestration** → Chair Duck synthesizes responses and determines next action
+5. **Voting** → When solutions are proposed, ducks vote with reasoning
+6. **Resolution** → Chair Duck presents the winning solution
+
+### Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **Structured Output (Zod)** | Ensures consistent, parseable responses from LLM |
+| **SSE Streaming** | Real-time UI updates as responses generate |
+| **Parallel Duck Calls** | Reduces latency; personas don't influence each other |
+| **Two-Step Grounding** | Web search requires separate call before structured output |
+| **Client-Side State** | `useCommittee` hook manages conversation flow |
+
 ## Prerequisites
 
 - Node.js 20+ 
