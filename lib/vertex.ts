@@ -53,18 +53,16 @@ export const vertex = createVertex({
 export const DEFAULT_MODEL = 'gemini-3.5-flash'
 
 // Model aliases for different use cases
-// Updated September 2026 - Gemini 2.0 models were retired June 1, 2026
+// Updated September 2026 - Tested against europe-west2 region
 export const MODELS = {
-  default: 'gemini-3.5-flash',      // GA, stable workhorse
-  latest: 'gemini-3.8-flash',       // Latest GA with best performance
-  lite: 'gemini-3.5-flash-lite',    // Cost-optimized
-  legacy: 'gemini-2.5-flash',       // Fallback (retires Oct 2026)
+  default: 'gemini-3.5-flash',      // GA, stable workhorse (works in EU)
+  legacy: 'gemini-2.5-flash',       // Fallback (retires Oct 2026, works in EU)
 } as const
 
 // Ordered list of models to try if the primary fails
+// Only includes models verified to work in europe-west2/europe-west3
 export const MODEL_FALLBACK_ORDER = [
   'gemini-3.5-flash',
-  'gemini-3.8-flash', 
   'gemini-2.5-flash',
 ] as const
 
