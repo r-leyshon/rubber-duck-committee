@@ -1,5 +1,5 @@
 import { generateText } from 'ai'
-import { vertex, DEFAULT_MODEL } from '@/lib/vertex'
+import { vertex, DEFAULT_MODEL, withModelFallback } from '@/lib/vertex'
 
 export async function POST(req: Request) {
   const formData = await req.formData()
@@ -16,31 +16,33 @@ export async function POST(req: Request) {
     // Determine the media type from the file
     const mediaType = audioFile.type || 'audio/webm'
 
-    // Use Gemini's native audio processing capability
-    const result = await generateText({
-      model: vertex(DEFAULT_MODEL),
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: 'Please transcribe the following audio accurately. Return only the transcribed text, nothing else.',
-            },
-            {
-              type: 'file',
-              data: new Uint8Array(audioBuffer),
-              mediaType: mediaType as 'audio/mpeg' | 'audio/wav' | 'audio/webm' | 'audio/ogg',
-            },
-          ],
+    // Use Gemini's native audio processing capability with fallback
+    const result = await withModelFallback((modelId) =>
+      generateText({
+        model: vertex(modelId),
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Please transcribe the following audio accurately. Return only the transcribed text, nothing else.',
+              },
+              {
+                type: 'file',
+                data: new Uint8Array(audioBuffer),
+                mediaType: mediaType as 'audio/mpeg' | 'audio/wav' | 'audio/webm' | 'audio/ogg',
+              },
+            ],
+          },
+        ],
+        providerOptions: {
+          google: {
+            audioTimestamp: true,
+          },
         },
-      ],
-      providerOptions: {
-        google: {
-          audioTimestamp: true,
-        },
-      },
-    })
+      })
+    )
 
     return Response.json({
       text: result.text,

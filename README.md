@@ -44,7 +44,7 @@ flowchart TB
     end
     
     subgraph GCP["☁️ Google Cloud Vertex AI"]
-        Gemini["Gemini 2.0 Flash<br/>• Structured JSON<br/>• Streaming<br/>• Web Search<br/>• Audio Transcription"]
+        Gemini["Gemini 3.5 Flash<br/>• Structured JSON<br/>• Streaming<br/>• Web Search<br/>• Audio Transcription"]
     end
     
     UC <-->|SSE Streams| Duck
@@ -203,7 +203,7 @@ GOOGLE_VERTEX_LOCATION=us-central1
 - [Next.js 16](https://nextjs.org/) - React framework
 - [Vercel AI SDK 6](https://sdk.vercel.ai/) - AI integration
 - [@ai-sdk/google-vertex](https://sdk.vercel.ai/providers/ai-sdk-providers/google-vertex) - Vertex AI provider
-- [Gemini 2.0 Flash](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models) - AI model
+- [Gemini 3.5 Flash](https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models) - AI model
 - [Tailwind CSS](https://tailwindcss.com/) - Styling
 - [Radix UI](https://www.radix-ui.com/) - UI components
 

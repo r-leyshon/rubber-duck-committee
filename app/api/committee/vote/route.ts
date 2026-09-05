@@ -1,7 +1,7 @@
 import { generateText, Output } from 'ai'
 import { z } from 'zod'
 import type { DuckPersona, DuckPersonaId, Vote, VotingResult } from '@/lib/types'
-import { vertex, DEFAULT_MODEL } from '@/lib/vertex'
+import { vertex, DEFAULT_MODEL, withModelFallback } from '@/lib/vertex'
 
 // Structured output schema for voting
 const voteSchema = z.object({
@@ -36,10 +36,11 @@ export async function POST(req: Request) {
       )
       .join('\n\n---\n\n')
 
-    const { output } = await generateText({
-      model: vertex(DEFAULT_MODEL),
-      output: Output.object({ schema: voteSchema }),
-      prompt: `You are ${persona.name}, evaluating solutions proposed by the rubber duck debugging committee.
+    const { output } = await withModelFallback((modelId) =>
+      generateText({
+        model: vertex(modelId),
+        output: Output.object({ schema: voteSchema }),
+        prompt: `You are ${persona.name}, evaluating solutions proposed by the rubber duck debugging committee.
 
 The user's problem: ${userProblem}
 
@@ -54,7 +55,8 @@ You CANNOT vote for your own solution if you proposed one. Consider:
 - Completeness: Does this address all aspects of the problem?
 
 Cast your vote.`,
-    })
+      })
+    )
 
     if (output) {
       votes.push({
@@ -97,15 +99,16 @@ Cast your vote.`,
       .map((s) => `**${s.duckName}**: ${s.solution}`)
       .join('\n\n')
 
-    const { output: tiebreakerOutput } = await generateText({
-      model: vertex(DEFAULT_MODEL),
-      output: Output.object({
-        schema: z.object({
-          winner: z.enum(['analytical', 'creative', 'pragmatic']),
-          reasoning: z.string(),
+    const { output: tiebreakerOutput } = await withModelFallback((modelId) =>
+      generateText({
+        model: vertex(modelId),
+        output: Output.object({
+          schema: z.object({
+            winner: z.enum(['analytical', 'creative', 'pragmatic']),
+            reasoning: z.string(),
+          }),
         }),
-      }),
-      prompt: `You are the Orchestrator Duck, breaking a tie in the voting.
+        prompt: `You are the Orchestrator Duck, breaking a tie in the voting.
 
 The user's problem: ${userProblem}
 
@@ -115,7 +118,8 @@ ${tiedSolutions}
 Vote counts: ${JSON.stringify(voteCounts)}
 
 As the neutral moderator, decide which solution should win. Consider the user's original problem and which solution best addresses their needs.`,
-    })
+      })
+    )
 
     if (tiebreakerOutput) {
       winner = tiebreakerOutput.winner as DuckPersonaId

@@ -1,10 +1,7 @@
 import { streamObject, generateText } from 'ai'
 import { z } from 'zod'
 import type { DuckPersona } from '@/lib/types'
-import { vertex, DEFAULT_MODEL } from '@/lib/vertex'
-
-// Fast model for grounding step (cheaper, just needs to search)
-const GROUNDING_MODEL = 'gemini-2.0-flash-001'
+import { vertex, DEFAULT_MODEL, withModelFallback } from '@/lib/vertex'
 
 // Common fields shared between both status types
 const thinkingSchema = z.array(z.object({
@@ -102,20 +99,23 @@ export async function POST(req: Request) {
 
 Search for current, relevant information to help answer this question. Provide a concise summary of what you find, including any relevant facts, documentation references, or current best practices. Focus on accuracy and recency.`
 
-      const groundingResult = await generateText({
-        model: vertex(GROUNDING_MODEL),
-        prompt: groundingPrompt,
-        providerOptions: {
-          vertex: {
-            googleSearchRetrieval: {
-              dynamicRetrievalConfig: {
-                mode: 'MODE_DYNAMIC',
-                dynamicThreshold: 0.1,
+      // Use withModelFallback for resilience against deprecated models
+      const groundingResult = await withModelFallback((modelId) =>
+        generateText({
+          model: vertex(modelId),
+          prompt: groundingPrompt,
+          providerOptions: {
+            vertex: {
+              googleSearchRetrieval: {
+                dynamicRetrievalConfig: {
+                  mode: 'MODE_DYNAMIC',
+                  dynamicThreshold: 0.1,
+                },
               },
             },
           },
-        },
-      })
+        })
+      )
 
       // Extract grounding metadata (cast to access experimental property)
       const providerMeta = (groundingResult as unknown as { 

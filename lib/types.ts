@@ -10,7 +10,7 @@ export interface DuckPersona {
   color: string
   enabledModes: DuckMode[]
   hasWebSearch: boolean
-  modelId?: string      // Vertex AI model ID (e.g., 'gemini-2.0-flash-001')
+  modelId?: string      // Vertex AI model ID (e.g., 'gemini-3.5-flash')
   temperature?: number  // Generation temperature (0.0 - 2.0, default 1.0)
 }
 
